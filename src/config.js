@@ -31,7 +31,18 @@ export const CAMERA_MODES = {
   },
 };
 
-export const MODEL_BASE = "mobilenet_v2";
+export const MODEL_BASE = "lite_mobilenet_v2";
+
+export const MODEL_FALLBACKS = [
+  "lite_mobilenet_v2",
+  "mobilenet_v2",
+];
+
+export const MODEL_CHOICES = new Set([
+  "lite_mobilenet_v2",
+  "mobilenet_v2",
+  "mobilenet_v1",
+]);
 
 export const MODEL_LABELS = {
   mobilenet_v1: "COCO SSD V1",

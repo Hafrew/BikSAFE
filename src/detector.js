@@ -4,6 +4,8 @@ import {
   FALLBACK_RISK_PROFILES,
   INFERENCE,
   MODEL_BASE,
+  MODEL_CHOICES,
+  MODEL_FALLBACKS,
   MODEL_LABELS,
   RANGE_FILTER,
   SCORE_THRESHOLD_BY_CLASS,
@@ -200,6 +202,19 @@ export class VehicleDetector {
     return this.settings.distanceTuning[this.mode];
   }
 
+  setModelPreference(base) {
+    if (this.model || this.modelPromise || !MODEL_CHOICES.has(base)) {
+      return;
+    }
+
+    this.modelBase = base;
+    this.modelLabel = MODEL_LABELS[base] ?? base;
+    this.snapshot = {
+      ...this.snapshot,
+      modelLabel: this.modelLabel,
+    };
+  }
+
   async configureBackend() {
     if (!window.tf) {
       throw new DetectorError(
@@ -276,32 +291,49 @@ export class VehicleDetector {
           );
         }
 
-        try {
-          this.modelBase = MODEL_BASE;
-          this.model = await loader.load({ base: MODEL_BASE });
-        } catch (error) {
-          this.emitStatus("model-fallback", {
-            state: "degraded",
-            message: "Primary detector model failed; loading lighter fallback model.",
-            error,
-          });
+        const modelCandidates = [
+          this.modelBase,
+          ...MODEL_FALLBACKS,
+        ].filter((base, index, candidates) => (
+          MODEL_CHOICES.has(base) && candidates.indexOf(base) === index
+        ));
+        let lastError = null;
 
-          this.modelBase = "lite_mobilenet_v2";
-
+        for (const [index, base] of modelCandidates.entries()) {
           try {
-            this.model = await loader.load({ base: this.modelBase });
-          } catch (fallbackError) {
-            this.emitStatus("model-failed", {
-              state: "unsafe",
-              message: "Vehicle detector model failed to load.",
-              error: fallbackError,
+            this.modelBase = base;
+            this.modelLabel = MODEL_LABELS[base] ?? base;
+            this.emitStatus("model-loading", {
+              state: "ready",
+              message: `Loading ${this.modelLabel}.`,
             });
-            throw new DetectorError(
-              "MODEL_LOAD_FAILED",
-              "Vehicle detector model failed to load.",
-              fallbackError,
-            );
+            this.model = await loader.load({ base });
+            break;
+          } catch (error) {
+            lastError = error;
+            if (index < modelCandidates.length - 1) {
+              const nextBase = modelCandidates[index + 1];
+              const nextLabel = MODEL_LABELS[nextBase] ?? nextBase;
+              this.emitStatus("model-fallback", {
+                state: "degraded",
+                message: `${this.modelLabel} failed; trying ${nextLabel}.`,
+                error,
+              });
+            }
           }
+        }
+
+        if (!this.model) {
+          this.emitStatus("model-failed", {
+            state: "unsafe",
+            message: "Vehicle detector model failed to load.",
+            error: lastError,
+          });
+          throw new DetectorError(
+            "MODEL_LOAD_FAILED",
+            "Vehicle detector model failed to load.",
+            lastError,
+          );
         }
 
         this.modelLabel = MODEL_LABELS[this.modelBase] ?? this.modelBase;

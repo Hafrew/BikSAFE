@@ -1,4 +1,4 @@
-import { CAMERA_MODES } from "./config.js";
+import { CAMERA_MODES, MODEL_BASE, MODEL_CHOICES } from "./config.js";
 import { CameraController } from "./camera.js";
 import { VehicleDetector } from "./detector.js";
 import { FeedbackController } from "./feedback.js";
@@ -25,12 +25,44 @@ const BLOCKING_HEALTH_STATES = new Set([
 const DETECTOR_STALE_MS = 1600;
 const FIRST_INFERENCE_GRACE_MS = 2200;
 const MAX_CAMERA_RECOVERY_ATTEMPTS = 5;
+const MODEL_CHOICE_STORAGE_KEY = "biksafe:model-choice";
+
+function registerOfflineCache() {
+  if (!("serviceWorker" in navigator)) {
+    return;
+  }
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch((error) => {
+      console.warn("BikSAFE cache registration failed.", error);
+    });
+  }, { once: true });
+}
+
+function getSavedModelChoice() {
+  try {
+    const saved = window.localStorage.getItem(MODEL_CHOICE_STORAGE_KEY);
+    return MODEL_CHOICES.has(saved) ? saved : MODEL_BASE;
+  } catch {
+    return MODEL_BASE;
+  }
+}
+
+function saveModelChoice(base) {
+  try {
+    window.localStorage.setItem(MODEL_CHOICE_STORAGE_KEY, base);
+  } catch {
+    // The app can run without persisted preferences.
+  }
+}
 
 class BikSAFEApp {
   constructor() {
     this.video = document.getElementById("video");
     this.overlayCanvas = document.getElementById("overlay");
     this.retryButton = document.getElementById("retry-button");
+    this.startButton = document.getElementById("start-button");
+    this.modelSelect = document.getElementById("model-select");
     this.frontModeButton = document.getElementById("front-mode-button");
     this.rearModeButton = document.getElementById("rear-mode-button");
     this.settingsButton = document.getElementById("settings-button");
@@ -105,6 +137,12 @@ class BikSAFEApp {
       );
     });
 
+    this.modelSelect?.addEventListener("change", () => {
+      if (MODEL_CHOICES.has(this.modelSelect.value)) {
+        saveModelChoice(this.modelSelect.value);
+      }
+    });
+
     this.settingsButton.addEventListener("click", () => {
       this.setSettingsOpen(true);
     });
@@ -172,6 +210,30 @@ class BikSAFEApp {
 
     window.addEventListener("unhandledrejection", (event) => {
       this.reportRuntimeFault(event.reason);
+    });
+  }
+
+  waitForModelChoice() {
+    const savedChoice = getSavedModelChoice();
+
+    if (!this.modelSelect || !this.startButton) {
+      return Promise.resolve(savedChoice);
+    }
+
+    this.modelSelect.value = savedChoice;
+
+    return new Promise((resolve) => {
+      this.startButton.addEventListener("click", () => {
+        const choice = MODEL_CHOICES.has(this.modelSelect.value)
+          ? this.modelSelect.value
+          : MODEL_BASE;
+
+        saveModelChoice(choice);
+        this.modelSelect.disabled = true;
+        this.startButton.disabled = true;
+        this.startButton.textContent = "Starting...";
+        resolve(choice);
+      }, { once: true });
     });
   }
 
@@ -552,6 +614,7 @@ class BikSAFEApp {
   };
 
   async init() {
+    registerOfflineCache();
     this.bindEvents();
     this.applyModeState();
     this.applySettings();
@@ -571,6 +634,10 @@ class BikSAFEApp {
     this.ui.setSettingsOpen(false);
     this.ui.setDiagnosticsOpen(false);
     this.ui.updateHealth(this.healthSnapshot);
+
+    this.ui.setLoading(6, "Choose detection mode.");
+    const selectedModel = await this.waitForModelChoice();
+    this.detector.setModelPreference(selectedModel);
 
     this.ui.setLoading(18, "Preparing detector...");
     const modelTask = this.detector.loadModel().then(

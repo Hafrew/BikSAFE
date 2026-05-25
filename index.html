@@ -8,12 +8,12 @@
   <meta name="apple-mobile-web-app-title" content="BikSAFE" />
   <meta name="theme-color" content="#08151f" />
   <title>BikSAFE</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap"
-    rel="stylesheet"
-  />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+  <link rel="preconnect" href="https://tfhub.dev" crossorigin />
+  <link rel="preconnect" href="https://storage.googleapis.com" crossorigin />
+  <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
+  <link rel="dns-prefetch" href="https://tfhub.dev" />
+  <link rel="dns-prefetch" href="https://storage.googleapis.com" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body data-zone="clear">
@@ -27,6 +27,17 @@
       <h1 class="loading-copy__title">Ride-aware traffic vision</h1>
       <p class="loading-copy__status" id="load-status">Preparing mobile detector...</p>
     </div>
+    <label class="model-picker" for="model-select">
+      <span class="model-picker__label">Detection mode</span>
+      <select id="model-select" class="model-picker__select">
+        <option value="lite_mobilenet_v2">Fast start - lighter download</option>
+        <option value="mobilenet_v2">Balanced - stronger detection</option>
+        <option value="mobilenet_v1">Compatibility - older devices</option>
+      </select>
+    </label>
+    <button id="start-button" class="primary-button primary-button--start" type="button">
+      Start Detector
+    </button>
     <div class="load-bar-wrap">
       <div class="load-bar" id="load-bar"></div>
     </div>

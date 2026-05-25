@@ -7,6 +7,8 @@
   --text: #eff7f5;
   --muted: rgba(239, 247, 245, 0.64);
   --zone-color: #5ef2c4;
+  --font-ui: "Segoe UI", Arial, sans-serif;
+  --font-data: "Cascadia Mono", Consolas, "Courier New", monospace;
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --alert-notification-reserve: 92px;
@@ -28,7 +30,7 @@ body {
     radial-gradient(circle at top, rgba(24, 94, 89, 0.18), transparent 42%),
     linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
   color: var(--text);
-  font-family: "Rajdhani", sans-serif;
+  font-family: var(--font-ui);
   touch-action: manipulation;
 }
 
@@ -37,7 +39,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -166,7 +169,7 @@ body[data-zone="close"] .glow-layer {
 .loading-mark__ring,
 .loading-mark__core {
   position: absolute;
-  border-radius: 999px;
+  border-radius: 0;
 }
 
 .loading-mark__ring {
@@ -186,11 +189,12 @@ body[data-zone="close"] .glow-layer {
   background: rgba(7, 22, 28, 0.88);
   border: 1px solid rgba(94, 242, 196, 0.18);
   color: var(--zone-color);
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   letter-spacing: 0.12em;
 }
 
 .loading-copy {
+  width: min(100%, 360px);
   text-align: center;
 }
 
@@ -204,7 +208,7 @@ body[data-zone="close"] .glow-layer {
 .settings-page__eyebrow,
 .settings-summary__label,
 .settings-control__row span {
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   text-transform: uppercase;
   letter-spacing: 0.18em;
 }
@@ -216,24 +220,58 @@ body[data-zone="close"] .glow-layer {
 }
 
 .loading-copy__title {
-  font-size: clamp(28px, 7vw, 44px);
-  line-height: 0.92;
+  font-size: 34px;
+  line-height: 1;
   letter-spacing: 0.04em;
 }
 
 .loading-copy__status {
   margin-top: 12px;
   color: var(--zone-color);
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   font-size: 12px;
   letter-spacing: 0.08em;
+}
+
+.model-picker {
+  width: min(360px, 82vw);
+  display: grid;
+  gap: 8px;
+}
+
+.model-picker__label {
+  color: var(--muted);
+  font-family: var(--font-data);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.model-picker__select {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid var(--panel-border);
+  background: rgba(6, 16, 21, 0.88);
+  color: var(--text);
+  outline: 0;
+}
+
+.model-picker__select:focus {
+  border-color: color-mix(in srgb, var(--zone-color) 58%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--zone-color) 18%, transparent);
+}
+
+.primary-button:disabled,
+.model-picker__select:disabled {
+  opacity: 0.58;
 }
 
 .load-bar-wrap {
   width: min(240px, 70vw);
   height: 4px;
   overflow: hidden;
-  border-radius: 999px;
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -252,7 +290,7 @@ body[data-zone="close"] .glow-layer {
 .error-card {
   width: min(100%, 420px);
   padding: 28px 24px;
-  border-radius: 26px;
+  border-radius: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(7, 18, 24, 0.92);
   box-shadow: 0 26px 80px rgba(0, 0, 0, 0.34);
@@ -283,11 +321,15 @@ body[data-zone="close"] .glow-layer {
   min-height: 52px;
   width: 100%;
   border: 0;
-  border-radius: 16px;
+  border-radius: 0;
   background: linear-gradient(135deg, #2db8ff, var(--zone-color));
   color: #041015;
   font-weight: 700;
   letter-spacing: 0.08em;
+}
+
+.primary-button.primary-button--start {
+  width: min(100%, 360px);
 }
 
 .topbar,
@@ -349,7 +391,7 @@ body[data-zone="close"] .glow-layer {
 .action-chip,
 .telemetry-card,
 .settings-summary__card {
-  border-radius: 18px;
+  border-radius: 0;
 }
 
 .brand-chip,
@@ -394,7 +436,7 @@ body[data-zone="close"] .glow-layer {
 .action-chip {
   pointer-events: auto;
   min-height: 42px;
-  border-radius: 14px;
+  border-radius: 0;
   padding: 7px 9px;
   display: flex;
   flex-direction: column;
@@ -438,7 +480,7 @@ body[data-zone="close"] .glow-layer {
   gap: 3px;
   padding: 3px;
   min-width: 118px;
-  border-radius: 14px;
+  border-radius: 0;
   border: 1px solid var(--panel-border);
   background: rgba(6, 16, 21, 0.58);
   backdrop-filter: blur(14px);
@@ -448,10 +490,10 @@ body[data-zone="close"] .glow-layer {
 .mode-switch__button {
   min-height: 32px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 0;
   background: transparent;
   color: var(--muted);
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 10px;
@@ -471,11 +513,11 @@ body[data-zone="close"] .glow-layer {
   display: grid;
   gap: 3px;
   padding: 8px 10px;
-  border-radius: 14px;
+  border-radius: 0;
   border: 1px solid rgba(255, 190, 98, 0.34);
   background: rgba(18, 14, 8, 0.82);
   color: #ffdfaa;
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   text-transform: uppercase;
   pointer-events: none;
   backdrop-filter: blur(14px);
@@ -532,7 +574,7 @@ body[data-zone="close"] .glow-layer {
   margin: 0 auto;
   padding: 16px 18px 15px;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 0;
   border: 1px solid rgba(239, 247, 245, 0.18);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 58%),
@@ -556,7 +598,7 @@ body[data-zone="close"] .glow-layer {
   grid-area: zone;
   min-width: 0;
   color: var(--zone-color);
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   font-size: clamp(42px, 10vw, 88px);
   line-height: 0.82;
   letter-spacing: 0;
@@ -592,7 +634,7 @@ body[data-zone="close"] .glow-layer {
 .bottom-hud__distance {
   grid-area: distance;
   color: rgba(239, 247, 245, 0.95);
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   font-size: clamp(18px, 4.5vw, 28px);
   line-height: 1;
   letter-spacing: 0.02em;
@@ -604,7 +646,7 @@ body[data-zone="close"] .glow-layer {
   height: 100%;
   transform-origin: left center;
   transform: scaleX(0.03);
-  border-radius: inherit;
+  border-radius: 0;
   background: linear-gradient(90deg, #37d3ff, var(--zone-color), #ff7b62);
   transition: transform 140ms ease;
 }
@@ -612,7 +654,7 @@ body[data-zone="close"] .glow-layer {
 .hero-card__footer {
   margin-top: 12px;
   color: rgba(239, 247, 245, 0.72);
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -625,11 +667,11 @@ body[data-zone="close"] .glow-layer {
   align-items: center;
   min-height: 34px;
   padding: 7px 10px;
-  border-radius: 999px;
+  border-radius: 0;
   background: rgba(255, 187, 89, 0.14);
   border: 1px solid rgba(255, 187, 89, 0.24);
   color: #ffd08f;
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -640,7 +682,7 @@ body[data-zone="close"] .glow-layer {
   right: 8px;
   bottom: calc(var(--safe-area-bottom) + var(--alert-notification-reserve) + 132px);
   padding: 10px;
-  border-radius: 18px;
+  border-radius: 0;
   border: 1px solid var(--panel-border);
   background: rgba(5, 13, 18, 0.84);
   backdrop-filter: blur(18px);
@@ -658,7 +700,7 @@ body[data-zone="close"] .glow-layer {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 9px;
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   text-transform: uppercase;
 }
 
@@ -682,11 +724,11 @@ body[data-zone="close"] .glow-layer {
 .diagnostics-drawer__close {
   min-height: 30px;
   border: 1px solid rgba(239, 247, 245, 0.12);
-  border-radius: 999px;
+  border-radius: 0;
   padding: 0 10px;
   background: rgba(239, 247, 245, 0.08);
   color: var(--text);
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   font-size: 10px;
   text-transform: uppercase;
 }
@@ -703,7 +745,7 @@ body[data-zone="close"] .glow-layer {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  border-radius: 12px;
+  border-radius: 0;
   background: rgba(6, 16, 21, 0.72);
 }
 
@@ -717,11 +759,11 @@ body[data-zone="close"] .glow-layer {
   bottom: calc(var(--safe-area-bottom) + 18px);
   width: min(40vw, 280px);
   padding: 10px 12px;
-  border-radius: 16px;
+  border-radius: 0;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: rgba(6, 16, 21, 0.74);
   color: rgba(239, 247, 245, 0.84);
-  font-family: "Share Tech Mono", monospace;
+  font-family: var(--font-data);
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -740,7 +782,7 @@ body[data-zone="close"] .glow-layer {
   min-height: 62vh;
   max-height: 82vh;
   padding: 14px 14px calc(var(--safe-area-bottom) + 18px);
-  border-radius: 28px 28px 0 0;
+  border-radius: 0;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 38%),
     rgba(5, 15, 20, 0.98);
@@ -751,7 +793,7 @@ body[data-zone="close"] .glow-layer {
 .settings-page__handle {
   width: 60px;
   height: 5px;
-  border-radius: 999px;
+  border-radius: 0;
   margin: 0 auto 14px;
   background: rgba(239, 247, 245, 0.22);
 }
@@ -803,7 +845,7 @@ body[data-zone="close"] .glow-layer {
 .settings-section {
   margin-top: 14px;
   padding: 14px;
-  border-radius: 22px;
+  border-radius: 0;
   background: rgba(6, 16, 21, 0.88);
 }
 
@@ -865,6 +907,35 @@ body.settings-open .hud,
 body.settings-open .diagnostics-drawer,
 body.settings-open .status-message {
   filter: blur(5px);
+}
+
+.loading-mark__ring,
+.loading-mark__core,
+.load-bar-wrap,
+.error-card,
+.primary-button,
+.brand-chip,
+.pill,
+.action-chip,
+.mode-switch,
+.mode-switch__button,
+.health-banner,
+.bottom-hud,
+.rear-banner,
+.diagnostics-drawer,
+.diagnostics-drawer__close,
+.telemetry-card,
+.status-message,
+.settings-page,
+.settings-page__handle,
+.settings-summary__card,
+.settings-section,
+.model-picker__select {
+  border-radius: 0;
+}
+
+.risk-meter__fill {
+  border-radius: 0;
 }
 
 @keyframes spin {
