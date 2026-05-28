@@ -1,6 +1,7 @@
 import { CAMERA_MODES, ZONE_STYLES } from "./config.js";
 
 const BLOCKING_HEALTH_STATES = new Set(["RECOVERING", "UNSAFE"]);
+const RADAR_MAX_DISTANCE_METERS = 60;
 
 function formatMeters(value) {
   if (!Number.isFinite(value)) {
@@ -29,6 +30,11 @@ function buildThreatDetail(snapshot, mode) {
 
   const subject = snapshot.primary.label;
   const direction = CAMERA_MODES[mode].directionLabel;
+  const closingSpeed = snapshot.primary.closingSpeedMps;
+
+  if (Number.isFinite(closingSpeed) && closingSpeed > 1.2) {
+    return `${subject} ${direction} / closing`;
+  }
 
   return `${subject} ${direction}`;
 }
@@ -59,10 +65,16 @@ export class HudController {
       diagnosticsDrawer: document.getElementById("diagnostics-drawer"),
       diagnosticsButton: document.getElementById("diagnostics-button"),
       diagnosticsFov: document.getElementById("diagnostics-fov"),
+      controlsToggleButton: document.getElementById("controls-toggle-button"),
+      controlTray: document.getElementById("control-tray"),
+      rideViewButton: document.getElementById("ride-view-button"),
+      visionViewButton: document.getElementById("vision-view-button"),
       cameraModeLabel: document.getElementById("camera-mode-label"),
       backendValue: document.getElementById("backend-value"),
       frontModeButton: document.getElementById("front-mode-button"),
       rearModeButton: document.getElementById("rear-mode-button"),
+      radarLane: document.getElementById("radar-lane"),
+      radarMarkers: document.getElementById("radar-markers"),
       zoneContext: document.getElementById("zone-context"),
       zoneValue: document.getElementById("zone-value"),
       heroDistance: document.getElementById("hero-distance"),
@@ -124,6 +136,22 @@ export class HudController {
     document.body.classList.toggle("rear-mode", mode === "rear");
   }
 
+  setControlsOpen(open) {
+    this.refs.controlTray.hidden = !open;
+    this.refs.controlsToggleButton.classList.toggle("is-active", open);
+    this.refs.controlsToggleButton.setAttribute("aria-expanded", String(open));
+    this.refs.controlsToggleButton.querySelector(".action-chip__value").textContent =
+      open ? "Close" : "Open";
+    document.body.classList.toggle("controls-open", open);
+  }
+
+  setViewMode(viewMode) {
+    const activeView = viewMode === "vision" ? "vision" : "ride";
+    document.body.dataset.view = activeView;
+    this.refs.rideViewButton.classList.toggle("is-active", activeView === "ride");
+    this.refs.visionViewButton.classList.toggle("is-active", activeView === "vision");
+  }
+
   setSoundEnabled(enabled) {
     this.refs.soundButton.classList.toggle("is-off", !enabled);
     this.refs.soundButtonValue.textContent = enabled ? "On" : "Off";
@@ -150,10 +178,16 @@ export class HudController {
     document.body.classList.toggle("diagnostics-open", open);
   }
 
-  update(snapshot, { mode, fps, health }) {
+  update(snapshot, { mode, fps, health, viewMode }) {
     const style = ZONE_STYLES[snapshot.zone] ?? ZONE_STYLES.CLEAR;
     const thresholds = snapshot.thresholds;
     const healthBlocksVision = health && BLOCKING_HEALTH_STATES.has(health.state);
+
+    this.updateRadar(snapshot, {
+      healthBlocksVision,
+      mode,
+      viewMode,
+    });
 
     document.body.dataset.zone = healthBlocksVision
       ? health.state === "UNSAFE"
@@ -207,6 +241,44 @@ export class HudController {
     const calibrationSource = snapshot.primary?.calibrationSource;
     this.refs.diagnosticsFov.textContent =
       calibrationSource === "tuned" ? "FOV tuned" : "FOV estimated";
+  }
+
+  updateRadar(snapshot, { healthBlocksVision }) {
+    const markerHtml = (snapshot.vehicles ?? [])
+      .slice(0, 5)
+      .map((vehicle) => {
+        const distance = Number(vehicle.distanceMeters);
+        const safeDistance = Number.isFinite(distance)
+          ? Math.max(0, Math.min(distance, RADAR_MAX_DISTANCE_METERS))
+          : RADAR_MAX_DISTANCE_METERS;
+        const bottom = Math.max(
+          6,
+          Math.min(94, 100 - (safeDistance / RADAR_MAX_DISTANCE_METERS) * 88),
+        );
+        const style = ZONE_STYLES[vehicle.zone] ?? ZONE_STYLES.CLEAR;
+        const isPrimary = snapshot.primary?.id === vehicle.id;
+        const shape = vehicle.class === "truck" || vehicle.class === "bus"
+          ? "large"
+          : vehicle.class === "motorcycle" || vehicle.class === "bicycle"
+            ? "narrow"
+            : "standard";
+        const label = Number.isFinite(distance) ? formatMeters(distance) : vehicle.label;
+
+        return `
+          <span
+            class="radar-marker radar-marker--${shape}${isPrimary ? " is-primary" : ""}"
+            style="--marker-bottom: ${bottom}%; --marker-color: ${style.boxColor};"
+            aria-label="${vehicle.label} ${label}"
+          >
+            <span class="radar-marker__label">${label}</span>
+          </span>
+        `;
+      })
+      .join("");
+
+    this.refs.radarMarkers.innerHTML = markerHtml;
+    this.refs.radarLane.classList.toggle("is-empty", !markerHtml);
+    this.refs.radarLane.classList.toggle("is-blocked", Boolean(healthBlocksVision));
   }
 
   updateHealth(health) {

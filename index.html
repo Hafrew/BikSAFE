@@ -16,7 +16,7 @@
   <link rel="dns-prefetch" href="https://storage.googleapis.com" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
-<body data-zone="clear">
+<body data-zone="clear" data-view="ride">
   <div id="loading" class="screen screen--loading">
     <div class="loading-mark">
       <div class="loading-mark__ring"></div>
@@ -72,6 +72,23 @@
         <span class="pill__label">Engine</span>
         <strong class="pill__value" id="backend-value">Starting</strong>
       </div>
+      <button id="controls-toggle-button" class="action-chip action-chip--icon controls-toggle" type="button" aria-expanded="false" aria-controls="control-tray">
+        <span class="action-chip__label">Menu</span>
+        <strong class="action-chip__value">Open</strong>
+      </button>
+    </div>
+  </header>
+
+  <section id="control-tray" class="control-tray" hidden aria-label="Ride controls">
+    <div class="view-switch" role="group" aria-label="Display view">
+      <button id="ride-view-button" class="view-switch__button" type="button">Ride</button>
+      <button id="vision-view-button" class="view-switch__button" type="button">Vision</button>
+    </div>
+    <div class="mode-switch" role="group" aria-label="Camera mode">
+      <button id="front-mode-button" class="mode-switch__button" type="button">Front</button>
+      <button id="rear-mode-button" class="mode-switch__button" type="button">Rear</button>
+    </div>
+    <div class="control-tray__actions">
       <button id="settings-button" class="action-chip action-chip--icon" type="button">
         <span class="action-chip__label">Tune</span>
         <strong class="action-chip__value">Zones</strong>
@@ -89,15 +106,8 @@
         <strong class="action-chip__value">Stats</strong>
       </button>
     </div>
-  </header>
-
-  <section class="action-rail">
-    <div class="mode-switch" role="group" aria-label="Camera mode">
-      <button id="front-mode-button" class="mode-switch__button" type="button">Front</button>
-      <button id="rear-mode-button" class="mode-switch__button" type="button">Rear</button>
-    </div>
-    <div class="rear-banner" id="rear-banner" hidden>Rear mirror</div>
   </section>
+  <div class="rear-banner" id="rear-banner" hidden>Rear mirror</div>
 
   <section class="health-banner" id="health-banner" hidden aria-live="polite">
     <strong id="health-state">System degraded</strong>
@@ -105,6 +115,16 @@
   </section>
 
   <main class="hud">
+    <aside class="radar-lane" id="radar-lane" aria-label="Vehicle distance radar">
+      <div class="radar-lane__tick radar-lane__tick--far">60m</div>
+      <div class="radar-lane__tick radar-lane__tick--mid">30m</div>
+      <div class="radar-lane__tick radar-lane__tick--near">10m</div>
+      <div class="radar-lane__track" id="radar-track">
+        <div class="radar-lane__sweep"></div>
+        <div class="radar-lane__markers" id="radar-markers"></div>
+      </div>
+      <div class="radar-lane__bike">BIKE</div>
+    </aside>
     <section class="bottom-hud" aria-live="polite">
       <span class="bottom-hud__context" id="zone-context">Traffic ahead</span>
       <strong class="bottom-hud__zone" id="zone-value">CLEAR</strong>

@@ -68,6 +68,9 @@ class BikSAFEApp {
     this.settingsButton = document.getElementById("settings-button");
     this.diagnosticsButton = document.getElementById("diagnostics-button");
     this.diagnosticsCloseButton = document.getElementById("diagnostics-close-button");
+    this.controlsToggleButton = document.getElementById("controls-toggle-button");
+    this.rideViewButton = document.getElementById("ride-view-button");
+    this.visionViewButton = document.getElementById("vision-view-button");
     this.soundButton = document.getElementById("sound-button");
     this.hapticsButton = document.getElementById("haptics-button");
 
@@ -101,6 +104,8 @@ class BikSAFEApp {
 
     this.running = false;
     this.switching = false;
+    this.viewMode = "ride";
+    this.controlsOpen = false;
     this.settingsOpen = false;
     this.diagnosticsOpen = false;
     this.fpsFrames = 0;
@@ -121,6 +126,17 @@ class BikSAFEApp {
     });
     this.rearModeButton.addEventListener("click", () => {
       void this.switchMode("rear");
+    });
+
+    this.controlsToggleButton.addEventListener("click", () => {
+      this.setControlsOpen(!this.controlsOpen);
+    });
+
+    this.rideViewButton.addEventListener("click", () => {
+      this.setViewMode("ride");
+    });
+    this.visionViewButton.addEventListener("click", () => {
+      this.setViewMode("vision");
     });
 
     this.soundButton.addEventListener("click", async () => {
@@ -191,6 +207,8 @@ class BikSAFEApp {
         this.setSettingsOpen(false);
       } else if (event.key === "Escape" && this.diagnosticsOpen) {
         this.setDiagnosticsOpen(false);
+      } else if (event.key === "Escape" && this.controlsOpen) {
+        this.setControlsOpen(false);
       }
     });
 
@@ -250,6 +268,9 @@ class BikSAFEApp {
     this.settingsPanel.setOpen(open);
     this.ui.setSettingsOpen(open);
     if (open) {
+      this.setControlsOpen(false);
+    }
+    if (open) {
       this.renderSettingsPanel(this.detector.snapshot);
     }
   }
@@ -272,6 +293,21 @@ class BikSAFEApp {
   setDiagnosticsOpen(open) {
     this.diagnosticsOpen = open;
     this.ui.setDiagnosticsOpen(open);
+    if (open) {
+      this.setViewMode("vision");
+      this.setControlsOpen(false);
+    }
+  }
+
+  setControlsOpen(open) {
+    this.controlsOpen = open;
+    this.ui.setControlsOpen(open);
+  }
+
+  setViewMode(viewMode) {
+    this.viewMode = viewMode === "vision" ? "vision" : "ride";
+    this.ui.setViewMode(this.viewMode);
+    this.overlay.setViewMode(this.viewMode);
   }
 
   reportSettingsError(settingsError) {
@@ -601,6 +637,7 @@ class BikSAFEApp {
       mode: this.mode,
       fps: this.updateFps(now),
       health,
+      viewMode: this.viewMode,
     });
     this.feedback.handleZone(
       BLOCKING_HEALTH_STATES.has(health.state) ? "CLEAR" : snapshot.zone,
@@ -633,6 +670,8 @@ class BikSAFEApp {
     }
     this.ui.setSettingsOpen(false);
     this.ui.setDiagnosticsOpen(false);
+    this.setControlsOpen(false);
+    this.setViewMode("ride");
     this.ui.updateHealth(this.healthSnapshot);
 
     this.ui.setLoading(6, "Choose detection mode.");

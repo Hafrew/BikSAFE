@@ -6,6 +6,8 @@ BikSAFE is a phone-first traffic awareness web app for bikes and handlebars. It 
 
 - Front mode for traffic ahead
 - Rear mode for handlebar mirror-style viewing
+- Mark II Ride view with a radar-style vehicle distance lane
+- Secondary Vision view for camera-first setup, calibration, and diagnostics
 - Bounding boxes and danger feedback for cars, trucks, buses, motorcycles, and bicycles
 - Adjustable distance zones in meters and approximate car lengths
 - Audio and haptic alerts on supported phones
@@ -18,6 +20,7 @@ BikSAFE is a phone-first traffic awareness web app for bikes and handlebars. It 
 - `src/detector.js`: detection, tracking, distance estimation, and zone logic
 - `src/preferences.js`: saved settings and threshold persistence
 - `src/settings-panel.js`: settings overlay behavior
+- `docs/BIKSAFE_MARK_II_PHASE_1.md`: Ride UI and secondary Vision view notes
 
 ## Running locally
 

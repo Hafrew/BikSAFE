@@ -627,7 +627,7 @@ body[data-zone="close"] .glow-layer {
 }
 
 .bottom-hud__detail::after {
-  content: " ·";
+  content: "";
   color: rgba(239, 247, 245, 0.46);
 }
 
@@ -901,9 +901,11 @@ body.rear-mode .hero-card {
 }
 
 body.settings-open .topbar,
+body.settings-open .control-tray,
 body.settings-open .action-rail,
 body.settings-open .health-banner,
 body.settings-open .hud,
+body.settings-open .radar-lane,
 body.settings-open .diagnostics-drawer,
 body.settings-open .status-message {
   filter: blur(5px);
@@ -1038,5 +1040,388 @@ body.settings-open .status-message {
 
   .bottom-hud__distance {
     font-size: 18px;
+  }
+}
+
+/* BikSAFE Mark II: radar-first Ride view with secondary Vision view. */
+:root {
+  --mark-safe: #2ee6a6;
+  --mark-detected: #37c8ff;
+  --mark-warning: #ffb84d;
+  --mark-danger: #ff3b5f;
+  --mark-panel: rgba(5, 10, 14, 0.76);
+}
+
+body[data-view="ride"] .grid-layer,
+body[data-view="ride"] .scanline-layer {
+  opacity: 0;
+}
+
+body[data-view="ride"] #overlay {
+  opacity: 0.78;
+}
+
+body[data-view="vision"] .radar-lane {
+  opacity: 0;
+  pointer-events: none;
+}
+
+body[data-view="vision"] .grid-layer {
+  opacity: 0.48;
+}
+
+body[data-view="vision"] .scanline-layer {
+  opacity: 0.34;
+}
+
+.topbar {
+  align-items: center;
+  padding:
+    calc(var(--safe-area-top) + 8px)
+    10px
+    0;
+}
+
+.topbar__controls {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.brand-chip {
+  max-width: 178px;
+  min-width: 138px;
+  border-radius: 14px;
+}
+
+.pill,
+.action-chip,
+.brand-chip {
+  border-radius: 12px;
+}
+
+.controls-toggle {
+  min-width: 60px;
+}
+
+.control-tray {
+  position: fixed;
+  z-index: 8;
+  top: calc(var(--safe-area-top) + 60px);
+  left: 10px;
+  right: 10px;
+  display: grid;
+  grid-template-columns: minmax(118px, 0.8fr) minmax(118px, 0.8fr) minmax(0, 2fr);
+  gap: 8px;
+  align-items: stretch;
+  padding: 8px;
+  border: 1px solid rgba(239, 247, 245, 0.14);
+  border-radius: 14px;
+  background: rgba(4, 11, 15, 0.88);
+  backdrop-filter: blur(18px) saturate(1.18);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+}
+
+.control-tray[hidden] {
+  display: none;
+}
+
+.view-switch {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+  padding: 3px;
+  min-width: 118px;
+  border-radius: 12px;
+  border: 1px solid rgba(239, 247, 245, 0.1);
+  background: rgba(239, 247, 245, 0.07);
+}
+
+.view-switch__button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-family: "Share Tech Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+}
+
+.view-switch__button.is-active,
+.mode-switch__button.is-active {
+  background: rgba(55, 200, 255, 0.18);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px rgba(55, 200, 255, 0.24);
+}
+
+.control-tray .mode-switch {
+  min-width: 118px;
+  border-radius: 12px;
+  box-shadow: none;
+}
+
+.control-tray__actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.control-tray__actions .action-chip {
+  min-height: 40px;
+  justify-content: center;
+}
+
+.rear-banner {
+  position: fixed;
+  z-index: 5;
+  top: calc(var(--safe-area-top) + 58px);
+  left: 10px;
+  min-height: 28px;
+  border-radius: 12px;
+}
+
+body.controls-open .rear-banner {
+  display: none;
+}
+
+.radar-lane {
+  position: fixed;
+  z-index: 4;
+  top: calc(var(--safe-area-top) + 112px);
+  right: clamp(10px, 3vw, 24px);
+  bottom: calc(var(--safe-area-bottom) + var(--alert-notification-reserve) + 126px);
+  width: clamp(68px, 15vw, 112px);
+  min-height: 260px;
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.radar-lane__track {
+  position: absolute;
+  top: 0;
+  right: 22px;
+  bottom: 24px;
+  width: 3px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(46, 230, 166, 0.22), rgba(255, 184, 77, 0.46), rgba(255, 59, 95, 0.68));
+  box-shadow: 0 0 18px rgba(46, 230, 166, 0.18);
+}
+
+.radar-lane__sweep {
+  position: absolute;
+  inset: 0 -18px;
+  border-radius: 999px;
+  border: 1px solid rgba(239, 247, 245, 0.08);
+}
+
+.radar-lane__markers {
+  position: absolute;
+  inset: 0;
+}
+
+.radar-lane__tick {
+  position: absolute;
+  right: 34px;
+  color: rgba(246, 250, 248, 0.78);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 10px;
+  line-height: 1;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+}
+
+.radar-lane__tick--far {
+  top: 0;
+}
+
+.radar-lane__tick--mid {
+  top: 44%;
+}
+
+.radar-lane__tick--near {
+  bottom: 48px;
+}
+
+.radar-lane__bike {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 48px;
+  min-height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1px solid rgba(239, 247, 245, 0.16);
+  background: rgba(5, 10, 14, 0.74);
+  color: rgba(246, 250, 248, 0.92);
+  font-family: "Share Tech Mono", monospace;
+  font-size: 9px;
+}
+
+.radar-marker {
+  position: absolute;
+  right: -7px;
+  bottom: var(--marker-bottom);
+  width: 17px;
+  height: 17px;
+  border-radius: 999px;
+  background: var(--marker-color);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--marker-color) 56%, transparent);
+  transform: translateY(50%);
+}
+
+.radar-marker--large {
+  right: -8px;
+  width: 19px;
+  height: 28px;
+  border-radius: 6px;
+}
+
+.radar-marker--narrow {
+  right: -5px;
+  width: 13px;
+  height: 22px;
+  border-radius: 999px;
+}
+
+.radar-marker.is-primary::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  border: 1px solid var(--marker-color);
+  animation: radar-pulse 950ms ease-out infinite;
+}
+
+.radar-marker__label {
+  position: absolute;
+  right: 25px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 3px 5px;
+  border-radius: 7px;
+  background: rgba(5, 10, 14, 0.74);
+  color: #f6faf8;
+  font-family: "Share Tech Mono", monospace;
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.radar-lane.is-empty .radar-lane__track {
+  background: rgba(46, 230, 166, 0.36);
+}
+
+.radar-lane.is-blocked .radar-lane__track {
+  background: rgba(255, 59, 95, 0.62);
+}
+
+.hud {
+  bottom: calc(var(--safe-area-bottom) + 20px);
+}
+
+.bottom-hud {
+  width: min(680px, calc(100% - clamp(78px, 18vw, 130px)));
+  margin-left: 0;
+  margin-right: auto;
+  min-height: 104px;
+  border-radius: 14px;
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--zone-color) 16%, transparent), transparent 58%),
+    var(--mark-panel);
+}
+
+.bottom-hud__zone {
+  font-size: clamp(42px, 9vw, 78px);
+}
+
+.bottom-hud__detail::after {
+  content: "";
+}
+
+.health-banner {
+  top: calc(var(--safe-area-top) + 112px);
+  right: clamp(88px, 18vw, 142px);
+}
+
+body[data-zone="medium"] {
+  --zone-color: var(--mark-warning);
+}
+
+body[data-zone="close"] {
+  --zone-color: var(--mark-danger);
+}
+
+@keyframes radar-pulse {
+  from {
+    opacity: 0.82;
+    transform: scale(0.72);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.65);
+  }
+}
+
+@media (max-width: 680px) {
+  .control-tray {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .control-tray__actions {
+    grid-column: 1 / -1;
+  }
+
+  .radar-lane {
+    top: calc(var(--safe-area-top) + 112px);
+    bottom: calc(var(--safe-area-bottom) + 148px);
+    width: 74px;
+  }
+
+  .bottom-hud {
+    width: calc(100% - 84px);
+  }
+
+  .health-banner {
+    right: 88px;
+    bottom: auto;
+  }
+}
+
+@media (max-width: 420px) {
+  .brand-chip {
+    min-width: 118px;
+  }
+
+  .topbar .pill {
+    display: none;
+  }
+
+  .control-tray {
+    top: calc(var(--safe-area-top) + 56px);
+    grid-template-columns: 1fr;
+  }
+
+  .control-tray__actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .radar-lane {
+    right: 8px;
+    width: 68px;
+  }
+
+  .bottom-hud {
+    width: calc(100% - 76px);
+    padding: 13px 12px 12px;
+  }
+
+  .bottom-hud__zone {
+    font-size: clamp(36px, 12vw, 52px);
+  }
+
+  .bottom-hud__detail {
+    white-space: normal;
   }
 }

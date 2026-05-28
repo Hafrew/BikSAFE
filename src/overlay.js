@@ -25,7 +25,12 @@ export class OverlayRenderer {
     });
     this.displayWidth = window.innerWidth;
     this.displayHeight = window.innerHeight;
+    this.viewMode = "ride";
     this.resize();
+  }
+
+  setViewMode(viewMode) {
+    this.viewMode = viewMode === "vision" ? "vision" : "ride";
   }
 
   resize() {
@@ -56,11 +61,23 @@ export class OverlayRenderer {
   render(snapshot) {
     this.resize();
     this.clear();
-    this.drawFocusLane();
 
-    snapshot.vehicles.forEach((vehicle) => {
-      this.drawVehicle(vehicle, snapshot.primary?.id === vehicle.id);
-    });
+    if (this.viewMode === "vision") {
+      this.drawFocusLane();
+      snapshot.vehicles.forEach((vehicle) => {
+        this.drawVehicle(vehicle, snapshot.primary?.id === vehicle.id, true);
+      });
+      return;
+    }
+
+    snapshot.vehicles
+      .filter((vehicle) => {
+        const isPrimary = snapshot.primary?.id === vehicle.id;
+        return isPrimary || vehicle.zone === "MEDIUM" || vehicle.zone === "CLOSE";
+      })
+      .forEach((vehicle) => {
+        this.drawVehicle(vehicle, snapshot.primary?.id === vehicle.id, false);
+      });
   }
 
   drawFocusLane() {
@@ -78,25 +95,28 @@ export class OverlayRenderer {
     this.ctx.restore();
   }
 
-  drawVehicle(vehicle, isPrimary) {
+  drawVehicle(vehicle, isPrimary, showLabel) {
     const style = ZONE_STYLES[vehicle.zone] ?? ZONE_STYLES.CLEAR;
     const [x, y, width, height] = this.videoBoxToViewport(vehicle.bbox);
     const clippedX = clamp(x, -40, this.displayWidth + 40);
     const clippedY = clamp(y, -40, this.displayHeight + 40);
-    const corner = isPrimary ? 18 : 12;
-    const lineWidth = isPrimary ? 3.4 : 2.4;
+    const urgent = vehicle.zone === "MEDIUM" || vehicle.zone === "CLOSE";
+    const corner = isPrimary || urgent ? 18 : 12;
+    const lineWidth = isPrimary || urgent ? 3.4 : 1.8;
 
     this.ctx.save();
     this.ctx.strokeStyle = style.boxColor;
     this.ctx.lineWidth = lineWidth;
     this.ctx.shadowColor = style.boxColor;
-    this.ctx.shadowBlur = isPrimary ? 16 : 10;
+    this.ctx.shadowBlur = isPrimary || urgent ? 16 : 6;
     roundRectPath(this.ctx, clippedX, clippedY, width, height, 16);
     this.ctx.stroke();
     this.ctx.shadowBlur = 0;
 
     this.drawCornerMarks(clippedX, clippedY, width, height, corner, style.boxColor);
-    this.drawLabel(vehicle, clippedX, clippedY, width, height, style.boxColor, isPrimary);
+    if (showLabel || isPrimary || urgent) {
+      this.drawLabel(vehicle, clippedX, clippedY, width, height, style.boxColor, isPrimary);
+    }
     this.ctx.restore();
   }
 
