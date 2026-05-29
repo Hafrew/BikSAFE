@@ -251,9 +251,10 @@ export class HudController {
         const safeDistance = Number.isFinite(distance)
           ? Math.max(0, Math.min(distance, RADAR_MAX_DISTANCE_METERS))
           : RADAR_MAX_DISTANCE_METERS;
+        const laneProgress = safeDistance / RADAR_MAX_DISTANCE_METERS;
         const bottom = Math.max(
           6,
-          Math.min(94, 100 - (safeDistance / RADAR_MAX_DISTANCE_METERS) * 88),
+          Math.min(94, 6 + laneProgress * 88),
         );
         const style = ZONE_STYLES[vehicle.zone] ?? ZONE_STYLES.CLEAR;
         const isPrimary = snapshot.primary?.id === vehicle.id;
