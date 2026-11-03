@@ -14,12 +14,14 @@ The November 2 model and pipeline additions have only been packaged and reviewed
 
 Before promotion to main, verify camera start/recovery and front/rear switching, identify the actual active model, compare sustained frame age and responsiveness, and evaluate detection quality with complete public-data coverage. Export recordings and the matching build fingerprint. A deployed preview alone does not establish performance improvement.
 
-## Proposed UI direction
+## Implemented UI direction
 
-The UI overhaul is a separate follow-up, not implemented in this preview:
+The UI now follows the supplied cycling-app reference: charcoal surfaces, electric-lime accents, rounded controls, and large type, adapted to a traffic-awareness workflow. This implementation has not yet been checked in a browser or on iPhone.
 
-- Setup: camera/mount orientation, sound preference, simple readiness checks, one Start ride action. Advanced model choices live under settings.
+- Setup: ahead/behind direction and one Start ride action, with model choices inside expandable detection settings. Existing safety acknowledgement and loading/error states are retained.
 - Ride: one dominant traffic message, clearly marked estimated distance, explicit front/rear state, and a compact camera/detector health indicator. A camera view is optional. No supported detection reads Monitoring; camera or detector failure takes priority.
 - Controls: large bottom controls for sound, camera view, and pause; keep diagnostics and tuning off the ride screen.
+- Pause stops inference and new alerts, clears the displayed range, and leaves the camera stream active. Resume waits for fresh results. Camera recovery and page visibility changes must not restart inference while manually paused.
 - Diagnostics: requested/active model, observation age, model-call timing, fallback reasons, and export, with experimental choices clearly labeled.
 - Layout: high contrast, system fonts, safe-area padding, dynamic viewport sizing, readable text without clipping, and reduced animation. Keep range estimates visibly approximate and avoid implying that no detection means the road is safe.
+- The old radar and its DOM updates are removed. No map, GPS, route, or parking features are implied by the reference styling.

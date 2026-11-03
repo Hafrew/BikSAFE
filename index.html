@@ -6,7 +6,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="BikSAFE" />
-  <meta name="theme-color" content="#08151f" />
+  <meta name="theme-color" content="#10110e" />
   <title>BikSAFE</title>
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
@@ -19,15 +19,19 @@
 </head>
 <body data-zone="clear" data-view="ride">
   <div id="loading" class="screen screen--loading">
-    <div class="loading-mark">
-      <div class="loading-mark__ring"></div>
-      <div class="loading-mark__core">BS</div>
-    </div>
+    <div class="setup-brand"><span class="brand-symbol" aria-hidden="true">↗</span> BikSAFE <span>Mark III</span></div>
     <div class="loading-copy">
-      <p class="loading-copy__kicker">BikSAFE</p>
-      <h1 class="loading-copy__title">Ride-aware traffic vision</h1>
-      <p class="loading-copy__status" id="load-status">Preparing mobile detector...</p>
+      <p class="loading-copy__kicker">Your ride. Your awareness.</p>
+      <h1 class="loading-copy__title">Stay aware.<br /><strong>Ride ahead.</strong></h1>
+      <p class="setup-description">A second view of the traffic around your bike.</p>
     </div>
+    <div class="setup-illustration" aria-hidden="true">
+      <svg viewBox="0 0 320 190" fill="none"><path class="road-edge" d="M30 190 120 0M290 190 200 0"/><path class="road-center" d="M160 175v-25m0-25v-25m0-25V50m0-25V0"/><circle cx="160" cy="138" r="30" class="bike-halo"/><path d="m146 148 9-21h13l9 21m-31-1h31m-22-20-4-8h-8m25 8 3-10h8" class="bike-line"/><circle cx="144" cy="149" r="12" class="bike-line"/><circle cx="178" cy="149" r="12" class="bike-line"/><rect x="144" y="30" width="32" height="45" rx="12" class="traffic-shape"/><path d="M151 40h18m-18 23h18" class="traffic-window"/></svg>
+      <span>Camera-based traffic awareness</span>
+    </div>
+    <fieldset class="setup-direction"><legend>Watch direction</legend><button id="setup-front-button" type="button" aria-pressed="true">Ahead <span>↗</span></button><button id="setup-rear-button" type="button" aria-pressed="false">Behind <span>↙</span></button></fieldset>
+    <details class="advanced-setup" id="advanced-setup">
+      <summary>Detection settings <span>Advanced</span></summary>
     <label class="model-picker" for="model-select">
       <span class="model-picker__label">Detection mode</span>
       <select id="model-select" class="model-picker__select">
@@ -41,8 +45,10 @@
       </select>
     </label>
     <p id="model-note" class="settings-hint" aria-live="polite"></p>
+    </details>
+    <p class="loading-copy__status" id="load-status" role="status">Preparing mobile detector...</p>
     <button id="start-button" class="primary-button primary-button--start" type="button" disabled>
-      Start Detector
+      Start ride ↗
     </button>
     <div class="load-bar-wrap">
       <div class="load-bar" id="load-bar"></div>
@@ -89,8 +95,9 @@
 
   <header class="topbar">
     <div class="brand-chip">
-      <span class="brand-chip__label">BikSAFE</span>
-      <strong class="brand-chip__value" id="camera-mode-label">Front watch</strong>
+      <span class="brand-symbol" aria-hidden="true">↗</span>
+      <div><span class="brand-chip__label">BikSAFE</span>
+      <strong class="brand-chip__value" id="camera-mode-label">Front watch</strong></div>
     </div>
     <div class="topbar__controls">
       <div class="pill pill--status">
@@ -98,8 +105,8 @@
         <strong class="pill__value" id="backend-value">Starting</strong>
       </div>
       <button id="controls-toggle-button" class="action-chip action-chip--icon controls-toggle" type="button" aria-expanded="false" aria-controls="control-tray">
-        <span class="action-chip__label">Menu</span>
-        <strong class="action-chip__value">Open</strong>
+        <span class="action-chip__label" aria-hidden="true">•••</span>
+        <strong class="action-chip__value">Menu</strong>
       </button>
     </div>
   </header>
@@ -118,21 +125,18 @@
         <span class="action-chip__label">Tune</span>
         <strong class="action-chip__value">Zones</strong>
       </button>
-      <button id="sound-button" class="action-chip" type="button">
-        <span class="action-chip__label">Audio</span>
-        <strong class="action-chip__value" id="sound-button-value">On</strong>
-      </button>
       <button id="haptics-button" class="action-chip" type="button">
         <span class="action-chip__label">Haptic</span>
         <strong class="action-chip__value" id="haptics-button-value">On</strong>
       </button>
       <button id="diagnostics-button" class="action-chip" type="button">
-        <span class="action-chip__label">Diag</span>
-        <strong class="action-chip__value">Stats</strong>
+        <span class="action-chip__label">Device</span>
+        <strong class="action-chip__value">Diagnostics</strong>
       </button>
     </div>
   </section>
   <div class="rear-banner" id="rear-banner" hidden>Rear mirror</div>
+  <div class="ride-heading"><p>Traffic awareness</p><h1>Your ride.<br /><strong>In view.</strong></h1><span class="ride-health" id="ride-health" role="status">Preparing camera</span></div>
 
   <section class="health-banner" id="health-banner" hidden aria-live="polite">
     <strong id="health-state">System degraded</strong>
@@ -140,27 +144,23 @@
   </section>
 
   <main class="hud">
-    <aside class="radar-lane" id="radar-lane" aria-label="Vehicle distance radar">
-      <div class="radar-lane__tick radar-lane__tick--far">60m</div>
-      <div class="radar-lane__tick radar-lane__tick--mid">30m</div>
-      <div class="radar-lane__tick radar-lane__tick--near">10m</div>
-      <div class="radar-lane__track" id="radar-track">
-        <div class="radar-lane__sweep"></div>
-        <div class="radar-lane__markers" id="radar-markers"></div>
-      </div>
-      <div class="radar-lane__bike">BIKE</div>
-    </aside>
     <section class="bottom-hud" aria-live="polite">
       <span class="bottom-hud__context" id="zone-context">Traffic ahead</span>
       <strong class="bottom-hud__zone" id="zone-value">MONITORING</strong>
       <span class="bottom-hud__detail" id="threat-detail">Waiting for detector</span>
       <span class="bottom-hud__distance" id="hero-distance">--</span>
+      <span class="distance-caption">Estimated distance</span>
       <div class="risk-meter" hidden aria-hidden="true">
         <div class="risk-meter__fill" id="risk-fill"></div>
       </div>
       <p class="hero-card__footer" id="hero-thresholds" hidden>Warning under --. Danger under --.</p>
     </section>
   </main>
+  <nav class="ride-dock" aria-label="Ride controls">
+    <button id="sound-button" class="dock-button" type="button" aria-pressed="true"><span aria-hidden="true">♪</span><span>Sound <strong id="sound-button-value">On</strong></span></button>
+    <button id="camera-view-button" class="dock-button" type="button" aria-pressed="false"><span aria-hidden="true">▣</span><span>Camera <strong id="camera-view-value">Off</strong></span></button>
+    <button id="pause-button" class="dock-button dock-button--primary" type="button" aria-pressed="false"><span id="pause-symbol" aria-hidden="true">Ⅱ</span><span id="pause-label">Pause</span></button>
+  </nav>
 
   <aside class="diagnostics-drawer" id="diagnostics-drawer" hidden aria-label="Diagnostics">
     <header class="diagnostics-drawer__header">
@@ -170,6 +170,11 @@
       </div>
       <button id="diagnostics-close-button" class="diagnostics-drawer__close" type="button">Close</button>
     </header>
+    <dl class="diagnostics-model">
+      <div><dt>Requested model</dt><dd id="diagnostics-requested-model">Preparing</dd></div>
+      <div><dt>Active model</dt><dd id="diagnostics-active-model">Preparing</dd></div>
+      <div><dt>Runtime</dt><dd id="diagnostics-runtime">Preparing</dd></div>
+    </dl>
     <div class="diagnostics-grid">
     <article class="telemetry-card">
       <span class="telemetry-card__label">Distance</span>

@@ -1,7 +1,6 @@
 import { CAMERA_MODES, ZONE_STYLES } from "./config.js";
 
 const BLOCKING_HEALTH_STATES = new Set(["RECOVERING", "UNSAFE"]);
-const RADAR_MAX_DISTANCE_METERS = 60;
 
 function formatMeters(value) {
   if (!Number.isFinite(value)) {
@@ -9,14 +8,6 @@ function formatMeters(value) {
   }
 
   return value >= 10 ? `${value.toFixed(0)}m` : `${value.toFixed(1)}m`;
-}
-
-function formatCarLengths(value) {
-  if (!Number.isFinite(value)) {
-    return "--";
-  }
-
-  return `${value.toFixed(1)} cars`;
 }
 
 function formatLatency(latencyMs) {
@@ -82,8 +73,6 @@ export class HudController {
       backendValue: document.getElementById("backend-value"),
       frontModeButton: document.getElementById("front-mode-button"),
       rearModeButton: document.getElementById("rear-mode-button"),
-      radarLane: document.getElementById("radar-lane"),
-      radarMarkers: document.getElementById("radar-markers"),
       zoneContext: document.getElementById("zone-context"),
       zoneValue: document.getElementById("zone-value"),
       heroDistance: document.getElementById("hero-distance"),
@@ -102,6 +91,7 @@ export class HudController {
       hapticsButtonValue: document.getElementById("haptics-button-value"),
       statusMessage: document.getElementById("status-message"),
       settingsButton: document.getElementById("settings-button"),
+      rideHealth: document.getElementById("ride-health"),
     };
   }
 
@@ -113,6 +103,7 @@ export class HudController {
   }
 
   hideLoading() {
+    document.body.classList.remove("starting");
     this.refs.loading.classList.add("is-hidden");
     window.setTimeout(() => {
       this.refs.loading.hidden = true;
@@ -143,6 +134,10 @@ export class HudController {
     this.refs.rearBanner.hidden = mode !== "rear";
     this.refs.frontModeButton.classList.toggle("is-active", mode === "front");
     this.refs.rearModeButton.classList.toggle("is-active", mode === "rear");
+    this.refs.frontModeButton.setAttribute("aria-pressed", String(mode === "front"));
+    this.refs.rearModeButton.setAttribute("aria-pressed", String(mode === "rear"));
+    document.getElementById("setup-front-button").setAttribute("aria-pressed", String(mode === "front"));
+    document.getElementById("setup-rear-button").setAttribute("aria-pressed", String(mode === "rear"));
     document.body.classList.toggle("rear-mode", mode === "rear");
   }
 
@@ -151,7 +146,7 @@ export class HudController {
     this.refs.controlsToggleButton.classList.toggle("is-active", open);
     this.refs.controlsToggleButton.setAttribute("aria-expanded", String(open));
     this.refs.controlsToggleButton.querySelector(".action-chip__value").textContent =
-      open ? "Close" : "Open";
+      open ? "Close" : "Menu";
     document.body.classList.toggle("controls-open", open);
   }
 
@@ -160,11 +155,37 @@ export class HudController {
     document.body.dataset.view = activeView;
     this.refs.rideViewButton.classList.toggle("is-active", activeView === "ride");
     this.refs.visionViewButton.classList.toggle("is-active", activeView === "vision");
+    this.refs.rideViewButton.setAttribute("aria-pressed", String(activeView === "ride"));
+    this.refs.visionViewButton.setAttribute("aria-pressed", String(activeView === "vision"));
+    document.getElementById("camera-view-button").setAttribute("aria-pressed", String(activeView === "vision"));
+    document.getElementById("camera-view-value").textContent = activeView === "vision" ? "On" : "Off";
+  }
+
+  setPaused(paused) {
+    document.body.classList.toggle("paused", paused);
+    document.getElementById("pause-button").setAttribute("aria-pressed", String(paused));
+    document.getElementById("pause-label").textContent = paused ? "Resume" : "Pause";
+    document.getElementById("pause-symbol").textContent = paused ? "▶" : "Ⅱ";
+    if (paused) {
+      this.refs.zoneValue.textContent = "Paused";
+      this.refs.heroDistance.textContent = "--";
+      this.refs.threatDetail.textContent = "Detection and alerts are paused. Camera stays on.";
+      this.refs.rideHealth.textContent = "Detection paused";
+      this.refs.rideHealth.dataset.state = "issue";
+      for (const key of ["distanceValue", "vehicleCount", "fpsValue", "latencyValue", "observationAgeValue"]) {
+        this.refs[key].textContent = "--";
+      }
+    } else {
+      this.refs.zoneValue.textContent = "Resuming";
+      this.refs.threatDetail.textContent = "Waiting for a fresh observation";
+      this.refs.rideHealth.textContent = "Resuming detection";
+    }
   }
 
   setSoundEnabled(enabled) {
     this.refs.soundButton.classList.toggle("is-off", !enabled);
     this.refs.soundButtonValue.textContent = enabled ? "On" : "Off";
+    this.refs.soundButton.setAttribute("aria-pressed", String(enabled));
   }
 
   setHapticsEnabled(enabled, supported) {
@@ -193,12 +214,6 @@ export class HudController {
     const thresholds = snapshot.thresholds;
     const healthBlocksVision = health && BLOCKING_HEALTH_STATES.has(health.state);
 
-    this.updateRadar(snapshot, {
-      healthBlocksVision,
-      mode,
-      viewMode,
-    });
-
     document.body.dataset.zone = healthBlocksVision
       ? health.state === "UNSAFE"
         ? "close"
@@ -215,7 +230,7 @@ export class HudController {
 
     if (healthBlocksVision) {
       this.refs.zoneValue.textContent =
-        health.state === "UNSAFE" ? "UNSAFE" : "RECOVER";
+        health.state === "UNSAFE" ? "Unavailable" : "Recovering";
       this.refs.heroDistance.textContent = "--";
       this.refs.threatDetail.textContent = health.message;
       this.refs.heroThresholds.textContent =
@@ -232,9 +247,11 @@ export class HudController {
       return;
     }
 
-    this.refs.zoneValue.textContent = style.displayLabel;
+    this.refs.zoneValue.textContent = {
+      CLEAR: "Monitoring", FAR: "Vehicle in view", MEDIUM: "Vehicle nearby", CLOSE: "Vehicle close",
+    }[snapshot.zone] ?? style.displayLabel;
     this.refs.heroDistance.textContent = snapshot.primary
-      ? formatMeters(snapshot.primary.distanceMeters)
+      ? `≈ ${formatMeters(snapshot.primary.distanceMeters)}`
       : "--";
     this.refs.threatDetail.textContent = buildThreatDetail(snapshot, mode);
     this.refs.heroThresholds.textContent =
@@ -255,45 +272,6 @@ export class HudController {
       calibrationSource === "tuned" ? "FOV tuned" : "FOV estimated";
   }
 
-  updateRadar(snapshot, { healthBlocksVision }) {
-    const markerHtml = (snapshot.vehicles ?? [])
-      .slice(0, 5)
-      .map((vehicle) => {
-        const distance = Number(vehicle.distanceMeters);
-        const safeDistance = Number.isFinite(distance)
-          ? Math.max(0, Math.min(distance, RADAR_MAX_DISTANCE_METERS))
-          : RADAR_MAX_DISTANCE_METERS;
-        const laneProgress = safeDistance / RADAR_MAX_DISTANCE_METERS;
-        const bottom = Math.max(
-          6,
-          Math.min(94, 6 + laneProgress * 88),
-        );
-        const style = ZONE_STYLES[vehicle.zone] ?? ZONE_STYLES.CLEAR;
-        const isPrimary = snapshot.primary?.id === vehicle.id;
-        const shape = vehicle.class === "truck" || vehicle.class === "bus"
-          ? "large"
-          : vehicle.class === "motorcycle" || vehicle.class === "bicycle"
-            ? "narrow"
-            : "standard";
-        const label = Number.isFinite(distance) ? formatMeters(distance) : vehicle.label;
-
-        return `
-          <span
-            class="radar-marker radar-marker--${shape}${isPrimary ? " is-primary" : ""}"
-            style="--marker-bottom: ${bottom}%; --marker-color: ${style.boxColor};"
-            aria-label="${vehicle.label} ${label}"
-          >
-            <span class="radar-marker__label">${label}</span>
-          </span>
-        `;
-      })
-      .join("");
-
-    this.refs.radarMarkers.innerHTML = markerHtml;
-    this.refs.radarLane.classList.toggle("is-empty", !markerHtml);
-    this.refs.radarLane.classList.toggle("is-blocked", Boolean(healthBlocksVision));
-  }
-
   updateHealth(health) {
     const visibleIssues = health.issues.filter(
       (issue) => issue.code !== "calibration.fov",
@@ -302,6 +280,10 @@ export class HudController {
       (issue) => issue.code === "calibration.fov",
     );
     const isReady = visibleIssues.length === 0;
+    if (!document.body.classList.contains("paused")) {
+      this.refs.rideHealth.textContent = isReady ? "Camera and detector ready" : visibleIssues[0].title || health.state;
+      this.refs.rideHealth.dataset.state = isReady ? "ready" : BLOCKING_HEALTH_STATES.has(health.state) ? "blocked" : "issue";
+    }
 
     if (calibrationIssue) {
       this.refs.diagnosticsFov.textContent = calibrationIssue.title;

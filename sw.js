@@ -1,4 +1,4 @@
-const CACHE_VERSION = "biksafe-v10-experimental-models";
+const CACHE_VERSION = "biksafe-v11-lime-ride-ui";
 const APP_SHELL = [
   "./",
   "./index.html",

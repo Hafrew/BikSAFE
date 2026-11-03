@@ -23,7 +23,7 @@ function formatFov(profile) {
 }
 
 function buildZoneHint(thresholds, settings) {
-  return `Danger inside ${formatSettingValue(thresholds.dangerMeters, settings)}. Warning between ${formatSettingValue(thresholds.dangerMeters, settings)} and ${formatSettingValue(thresholds.warningMeters, settings)}. Safe beyond ${formatSettingValue(thresholds.warningMeters, settings)}.`;
+  return `Danger inside ${formatSettingValue(thresholds.dangerMeters, settings)}. Warning between ${formatSettingValue(thresholds.dangerMeters, settings)} and ${formatSettingValue(thresholds.warningMeters, settings)}. Estimates beyond this zone still require attention.`;
 }
 
 export class SettingsPanelController {
