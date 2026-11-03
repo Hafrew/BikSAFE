@@ -22,7 +22,6 @@
     <h1 class="setup-brand">BikSAFE</h1>
     <div class="setup-illustration" aria-hidden="true">
       <svg viewBox="0 0 320 190" fill="none"><path class="road-edge" d="M30 190 120 0M290 190 200 0"/><path class="road-center" d="M160 175v-25m0-25v-25m0-25V50m0-25V0"/><circle cx="160" cy="138" r="30" class="bike-halo"/><path d="m146 148 9-21h13l9 21m-31-1h31m-22-20-4-8h-8m25 8 3-10h8" class="bike-line"/><circle cx="144" cy="149" r="12" class="bike-line"/><circle cx="178" cy="149" r="12" class="bike-line"/><rect x="144" y="30" width="32" height="45" rx="12" class="traffic-shape"/><path d="M151 40h18m-18 23h18" class="traffic-window"/></svg>
-      <span>Camera-based traffic awareness</span>
     </div>
     <fieldset class="setup-direction"><legend>Watch direction</legend><button id="setup-front-button" type="button" aria-pressed="true">Ahead <span>↗</span></button><button id="setup-rear-button" type="button" aria-pressed="false">Behind <span>↙</span></button></fieldset>
     <details class="advanced-setup" id="advanced-setup">
@@ -89,22 +88,7 @@
   <div class="grid-layer"></div>
   <div class="scanline-layer"></div>
 
-  <header class="topbar">
-    <div class="brand-chip">
-      <div><span class="brand-chip__label">BikSAFE</span>
-      <strong class="brand-chip__value" id="camera-mode-label">Front watch</strong></div>
-    </div>
-    <div class="topbar__controls">
-      <div class="pill pill--status">
-        <span class="pill__label">Engine</span>
-        <strong class="pill__value" id="backend-value">Starting</strong>
-      </div>
-      <button id="controls-toggle-button" class="action-chip action-chip--icon controls-toggle" type="button" aria-expanded="false" aria-controls="control-tray">
-        <span class="action-chip__label" aria-hidden="true">•••</span>
-        <strong class="action-chip__value">Menu</strong>
-      </button>
-    </div>
-  </header>
+  <header class="topbar"><strong id="camera-mode-label">Front watch</strong></header>
 
   <section id="control-tray" class="control-tray" hidden aria-label="Ride controls">
     <div class="view-switch" role="group" aria-label="Display view">
@@ -131,30 +115,26 @@
     </div>
   </section>
   <div class="rear-banner" id="rear-banner" hidden>Rear mirror</div>
-  <div class="ride-heading"><p>Traffic awareness</p><h1>Your ride.<br /><strong>In view.</strong></h1><span class="ride-health" id="ride-health" role="status">Preparing camera</span></div>
 
   <section class="health-banner" id="health-banner" hidden aria-live="polite">
     <strong id="health-state">System degraded</strong>
     <span id="health-detail">Safety system degraded.</span>
   </section>
 
-  <main class="hud">
-    <section class="bottom-hud" aria-live="polite">
-      <span class="bottom-hud__context" id="zone-context">Traffic ahead</span>
-      <strong class="bottom-hud__zone" id="zone-value">MONITORING</strong>
-      <span class="bottom-hud__detail" id="threat-detail">Waiting for detector</span>
-      <span class="bottom-hud__distance" id="hero-distance">--</span>
-      <span class="distance-caption">Estimated distance</span>
-      <div class="risk-meter" hidden aria-hidden="true">
-        <div class="risk-meter__fill" id="risk-fill"></div>
-      </div>
-      <p class="hero-card__footer" id="hero-thresholds" hidden>Warning under --. Danger under --.</p>
-    </section>
-  </main>
+  <aside class="radar-lane" id="radar-lane" aria-label="Estimated vehicle distance, 0 to 60 metres">
+    <span class="radar-lane__caption">Est. m</span>
+    <span class="radar-lane__tick radar-lane__tick--far">60</span>
+    <span class="radar-lane__tick radar-lane__tick--mid">30</span>
+    <span class="radar-lane__tick radar-lane__tick--near">10</span>
+    <div class="radar-lane__track"><div id="radar-markers"></div></div>
+    <span class="radar-lane__bike">0</span>
+  </aside>
+  <p class="paused-notice" id="paused-notice" role="status" hidden>Detection and alerts paused. Camera stays on.</p>
   <nav class="ride-dock" aria-label="Ride controls">
     <button id="sound-button" class="dock-button" type="button" aria-pressed="true"><span aria-hidden="true">♪</span><span>Sound <strong id="sound-button-value">On</strong></span></button>
     <button id="camera-view-button" class="dock-button" type="button" aria-pressed="false"><span aria-hidden="true">▣</span><span>Camera <strong id="camera-view-value">Off</strong></span></button>
     <button id="pause-button" class="dock-button dock-button--primary" type="button" aria-pressed="false"><span id="pause-symbol" aria-hidden="true">Ⅱ</span><span id="pause-label">Pause</span></button>
+    <button id="controls-toggle-button" class="dock-button" type="button" aria-expanded="false" aria-controls="control-tray"><span aria-hidden="true">&bull;&bull;&bull;</span><span class="action-chip__value">Menu</span></button>
   </nav>
 
   <aside class="diagnostics-drawer" id="diagnostics-drawer" hidden aria-label="Diagnostics">
@@ -166,6 +146,7 @@
       <button id="diagnostics-close-button" class="diagnostics-drawer__close" type="button">Close</button>
     </header>
     <dl class="diagnostics-model">
+      <div><dt>Engine</dt><dd id="backend-value">Starting</dd></div>
       <div><dt>Requested model</dt><dd id="diagnostics-requested-model">Preparing</dd></div>
       <div><dt>Active model</dt><dd id="diagnostics-active-model">Preparing</dd></div>
       <div><dt>Runtime</dt><dd id="diagnostics-runtime">Preparing</dd></div>
@@ -196,10 +177,6 @@
     <button id="export-timings-button" class="diagnostics-drawer__close" type="button" disabled>Export timings</button>
     <a class="diagnostics-drawer__close" href="./tools/" target="_blank" rel="noopener">Comparison tools</a>
   </aside>
-
-  <p class="status-message" id="status-message" hidden>
-    Scanning for road traffic around the bike.
-  </p>
 
   <div id="settings-scrim" class="settings-scrim" hidden></div>
   <section id="settings-page" class="settings-page" hidden aria-label="Distance settings">

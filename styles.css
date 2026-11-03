@@ -1,3 +1,10 @@
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('./src/assets/fonts/plus-jakarta-sans-latin.woff2') format('woff2');
+}
 /* BikSAFE Mark III — a glanceable ride interface inspired by rounded cycling UI. */
 :root {
   color-scheme: dark;
@@ -6,8 +13,8 @@
   --text: #f6f7ef;
   --muted: #a9aca0;
   --lime: #ddff55;
-  --zone-color: var(--lime);
-  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --zone-color: #5ef2c4;
+  --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-data: var(--font-ui);
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
@@ -43,7 +50,6 @@ body[data-view='vision'] #overlay { opacity: 1; }
 
 .setup-illustration { position: relative; height: clamp(140px, 24dvh, 205px); overflow: hidden; border-radius: 18px; background: #1a1c15; }
 .setup-illustration svg { width: 100%; height: 100%; }
-.setup-illustration > span { position: absolute; bottom: 12px; left: 16px; font-size: 10px; color: var(--muted); background: #1a1c15e6; padding: 6px 9px; border-radius: 12px; }
 .road-edge { stroke: #424637; stroke-width: 18; }
 .road-center { stroke: #72785c; stroke-width: 2; }
 .bike-halo { fill: #ddff5514; stroke: #ddff5529; stroke-width: 16; }
@@ -80,47 +86,19 @@ body.starting .setup-direction, body.starting .advanced-setup { display: none; }
 .error-card .primary-button, .safety-card .primary-button { margin-top: 24px; }
 /* Ride: identity, secondary context, primary status, then thumb controls. */
 .topbar { position: fixed; z-index: 5; top: calc(var(--safe-area-top) + 16px); left: var(--gutter); right: var(--gutter); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.brand-chip { display: flex; align-items: center; gap: 10px; background: #25271fe8; padding: 12px 18px; border-radius: 18px; }
-.brand-chip__label { display: block; font-size: 10px; color: #c5c8bb; margin-bottom: 3px; }
-.brand-chip__value { display: block; font-size: 13px; font-weight: 550; }
-.topbar__controls { display: flex; align-items: center; gap: 8px; }
-.pill--status { display: none; }
 .action-chip { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 3px; min-height: 56px; border: 0; border-radius: 12px; background: #292c23; padding: 10px 16px; }
 .action-chip__label { font-size: 11px; color: var(--muted); }
 .action-chip__value { font-size: 13px; font-weight: 550; }
-.controls-toggle { width: 56px; border-radius: 12px; padding: 6px; }
-.controls-toggle .action-chip__label { font-size: 17px; color: var(--text); line-height: .6; letter-spacing: 2px; }
-.controls-toggle .action-chip__value { font-size: 10px; }
-.ride-heading { position: fixed; z-index: 4; top: calc(var(--safe-area-top) + 112px); left: var(--gutter); right: var(--gutter); pointer-events: none; }
-.ride-heading h1 { font-size: clamp(38px, 11vw, 60px); line-height: 1.02; font-weight: 350; letter-spacing: -.06em; }
-.ride-heading h1 strong { font-weight: 650; }
-.ride-health { display: inline-flex; align-items: center; gap: 8px; font-size: 11px; padding: 9px 12px; border-radius: 12px; background: #25271f; margin-top: 18px; color: #d5d9ca; }
-.ride-health::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--lime); }
-.ride-health[data-state='issue']::before { background: #ffba58; }
-.ride-health[data-state='blocked']::before { background: #ff7161; }
 .rear-banner { display: none; } /* Orientation is always explicit in the header. */
 .health-banner { position: fixed; z-index: 7; top: calc(var(--safe-area-top) + 320px); left: var(--gutter); right: var(--gutter); padding: 14px 16px; border: 1px solid #ffba5855; border-radius: 12px; background: #292417f5; }
 .health-banner strong { display: block; color: #ffcc82; font-size: 13px; margin-bottom: 5px; }
 .health-banner span { display: block; color: #e1d9c8; font-size: 12px; line-height: 1.4; }
-.hud { position: fixed; z-index: 4; bottom: calc(var(--safe-area-bottom) + 112px); left: var(--gutter); right: var(--gutter); }
-.bottom-hud { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px 10px; align-items: end; padding: 26px; border-radius: 18px; background: var(--lime); color: #11150a; min-height: 218px; }
-.bottom-hud__context { grid-column: 1 / -1; font-size: 12px; opacity: .75; }
-.bottom-hud__zone { grid-column: 1 / -1; font-size: clamp(28px, 8.2vw, 42px); font-weight: 600; line-height: 1.03; letter-spacing: -.05em; overflow-wrap: anywhere; }
-.bottom-hud__detail { grid-column: 1; font-size: 13px; line-height: 1.4; max-width: 24ch; }
-.bottom-hud__distance { grid-column: 2; grid-row: 3; font-size: clamp(28px, 8vw, 42px); line-height: 1; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -.045em; white-space: nowrap; }
-.distance-caption { grid-column: 2; font-size: 9px; text-align: right; opacity: .75; }
-body[data-zone='medium'] .bottom-hud { background: #ffcb70; }
-body[data-zone='close'] .bottom-hud { background: #ff8273; }
-body.paused .bottom-hud { background: #34382b; color: var(--text); }
-.ride-dock { position: fixed; z-index: 6; bottom: calc(var(--safe-area-bottom) + 20px); left: var(--gutter); right: var(--gutter); display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.ride-dock { position: fixed; z-index: 6; bottom: calc(var(--safe-area-bottom) + 20px); left: var(--gutter); right: var(--gutter); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .dock-button { border: 0; background: #272a21; min-height: 72px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; font-size: 11px; }
 .dock-button > span:first-child { font-size: 22px; line-height: 1; }
 .dock-button strong { font-weight: 500; color: var(--muted); }
 .dock-button--primary { background: #f6f7ef; color: #161912; }
 .dock-button[aria-pressed='true']:not(.is-off) { box-shadow: inset 0 0 0 1px #ddff5555; }
-body[data-view='vision'] .ride-heading h1, body[data-view='vision'] .ride-heading > p { display: none; }
-body[data-view='vision'] .ride-health { margin: 0; background: #171a13eb; }
-body[data-view='vision'] .bottom-hud { min-height: 170px; padding: 22px; }
 .control-tray { position: fixed; z-index: 9; top: calc(var(--safe-area-top) + 84px); left: var(--gutter); right: var(--gutter); max-height: calc(100dvh - var(--safe-area-top) - var(--safe-area-bottom) - 200px); overflow-y: auto; background: #20231bf7; border: 1px solid #3b4030; border-radius: 12px; padding: 18px; display: grid; gap: 14px; }
 .view-switch, .mode-switch { display: grid; grid-template-columns: 1fr 1fr; background: #11140d; border-radius: 12px; padding: 4px; gap: 4px; }
 .view-switch__button, .mode-switch__button { min-height: 44px; padding: 8px; border: 0; border-radius: 12px; color: #c1c7b5; background: transparent; font-size: 13px; }
@@ -150,37 +128,23 @@ body[data-view='vision'] .bottom-hud { min-height: 170px; padding: 22px; }
 .settings-control__row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; margin-bottom: 14px; }
 .settings-control__row strong { font-weight: 500; font-variant-numeric: tabular-nums; text-align: right; }
 .settings-control input[type='range'] { width: 100%; min-height: 32px; accent-color: var(--lime); }
-.status-message { display: none; }
 body.settings-open .ride-dock, body.diagnostics-open .ride-dock { visibility: hidden; }
 @media (min-width: 700px) {
   :root { --gutter: 32px; }
   .screen--loading { padding-top: 40px; }
   .screen--loading > * { max-width: 430px; }
-  .hud { right: auto; width: 440px; }
   .ride-dock { right: auto; width: 440px; }
   .health-banner { right: auto; width: 440px; }
   .control-tray { left: auto; width: 360px; }
   .diagnostics-drawer, .settings-page { left: auto; right: 24px; width: 460px; }
 }
 @media (max-height: 740px) and (min-width: 700px), (max-height: 680px) {
-  .ride-heading { top: calc(var(--safe-area-top) + 88px); }
-  .ride-heading h1 { font-size: 34px; }
-  .ride-heading > p { display: none; }
-  .ride-health { margin-top: 10px; }
   .health-banner { top: calc(var(--safe-area-top) + 210px); padding: 10px 14px; }
-  .bottom-hud { min-height: 175px; padding: 20px; gap: 8px; }
   .ride-dock { bottom: calc(var(--safe-area-bottom) + 12px); }
   .dock-button { min-height: 62px; }
-  .hud { bottom: calc(var(--safe-area-bottom) + 90px); }
   .setup-illustration { height: 125px; }
 }
 @media (orientation: landscape) and (max-height: 550px) {
-  .ride-heading { top: calc(var(--safe-area-top) + 95px); right: 55%; }
-  .ride-heading h1 { font-size: 32px; }
-  .hud { left: 48%; right: var(--gutter); top: calc(var(--safe-area-top) + 90px); bottom: calc(var(--safe-area-bottom) + 92px); }
-  .bottom-hud { min-height: 0; height: 100%; padding: 16px 20px; gap: 6px; }
-  .bottom-hud__zone { font-size: 26px; }
-  .bottom-hud__distance { font-size: 28px; }
   .ride-dock { left: 48%; right: var(--gutter); }
   .health-banner { top: auto; bottom: calc(var(--safe-area-bottom) + 24px); right: 55%; max-height: 100px; overflow-y: auto; }
   .diagnostics-drawer, .settings-page { width: min(460px, calc(100% - 20px)); }
@@ -195,4 +159,29 @@ body.settings-open .ride-dock, body.diagnostics-open .ride-dock { visibility: hi
 .error-card, .safety-card { margin: auto; flex-shrink: 0; }
 
 .setup-version { color: var(--muted); text-align: center; font-size: 11px; letter-spacing: .08em; padding-top: 4px; }
-.ride-heading > p { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+
+/* Minimal ride view: direction at the top, distance scale at the right. */
+.topbar { justify-content: flex-start; }
+#camera-mode-label { font-size: 14px; font-weight: 600; padding: 11px 14px; background: #171a13cc; border-radius: 10px; }
+.glow-layer { z-index: 3; border: 3px solid var(--zone-color); background: none; box-shadow: inset 0 0 60px color-mix(in srgb, var(--zone-color) 32%, transparent); transition: border-color 180ms ease, box-shadow 180ms ease; }
+body.paused .glow-layer { border-color: #6d7464; box-shadow: none; }
+.health-banner { top: calc(var(--safe-area-top) + 78px); right: 100px; }
+.control-tray { top: auto; bottom: calc(var(--safe-area-bottom) + 106px); }
+.radar-lane { position: fixed; z-index: 4; right: var(--gutter); top: calc(var(--safe-area-top) + 100px); bottom: calc(var(--safe-area-bottom) + 130px); width: 66px; pointer-events: none; }
+.radar-lane__caption { position: absolute; right: 0; top: -24px; font-size: 10px; color: var(--muted); }
+.radar-lane__track { position: absolute; top: 0; bottom: 18px; right: 7px; width: 3px; background: linear-gradient(to top, #ff625c, #ffbe62 30%, #5ef2c4); border-radius: 3px; }
+.radar-lane__tick { position: absolute; right: 20px; font-size: 10px; color: #d8e0cf; font-variant-numeric: tabular-nums; padding: 2px; background: #10110e88; }
+.radar-lane__tick--far { top: 0; }
+.radar-lane__tick--mid { top: calc(50% - 9px); }
+.radar-lane__tick--near { bottom: calc(16.67% + 15px); }
+.radar-lane__bike { position: absolute; bottom: 0; right: 5px; font-size: 10px; color: var(--muted); }
+.radar-marker { position: absolute; right: -5px; height: 13px; width: 13px; border-radius: 4px; background: var(--marker-color); transform: translateY(50%); }
+.radar-marker.is-primary { outline: 1px solid var(--marker-color); outline-offset: 3px; }
+.radar-marker__label { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); white-space: nowrap; color: var(--text); background: #15190fef; padding: 5px 7px; border-radius: 6px; font-size: 11px; font-variant-numeric: tabular-nums; }
+.radar-lane.is-blocked { opacity: .3; }
+.paused-notice { position: fixed; z-index: 5; bottom: calc(var(--safe-area-bottom) + 110px); left: var(--gutter); right: 100px; padding: 14px; border-radius: 12px; background: #252b1e; font-size: 12px; line-height: 1.5; }
+@media (orientation: landscape) and (max-height: 550px) {
+  .ride-dock { left: var(--gutter); right: var(--gutter); width: min(440px, calc(100% - 140px)); }
+  .health-banner { top: calc(var(--safe-area-top) + 74px); bottom: auto; right: 140px; }
+  .radar-lane { top: calc(var(--safe-area-top) + 42px); bottom: calc(var(--safe-area-bottom) + 38px); }
+}
