@@ -91,10 +91,7 @@ class BikSAFEApp {
     this.diagnosticsButton = document.getElementById("diagnostics-button");
     this.diagnosticsCloseButton = document.getElementById("diagnostics-close-button");
     this.controlsToggleButton = document.getElementById("controls-toggle-button");
-    this.rideViewButton = document.getElementById("ride-view-button");
-    this.visionViewButton = document.getElementById("vision-view-button");
     this.soundButton = document.getElementById("sound-button");
-    this.cameraViewButton = document.getElementById("camera-view-button");
     this.pauseButton = document.getElementById("pause-button");
     this.hapticsButton = document.getElementById("haptics-button");
     this.demoMode = new URLSearchParams(window.location.search).get("demo") === "1";
@@ -140,7 +137,7 @@ class BikSAFEApp {
     this.running = false;
     this.paused = false;
     this.switching = false;
-    this.viewMode = "ride";
+    this.viewMode = "vision";
     this.controlsOpen = false;
     this.settingsOpen = false;
     this.diagnosticsOpen = false;
@@ -191,9 +188,6 @@ class BikSAFEApp {
     };
     document.getElementById("setup-front-button").addEventListener("click", () => setSetupDirection("front"));
     document.getElementById("setup-rear-button").addEventListener("click", () => setSetupDirection("rear"));
-    this.cameraViewButton.addEventListener("click", () => {
-      this.setViewMode(this.viewMode === "ride" ? "vision" : "ride");
-    });
     this.pauseButton.addEventListener("click", () => this.setPaused(!this.paused));
     document.getElementById("record-timings-button")?.addEventListener("click", (event) => {
       this.runtimeDiagnostics = new RuntimeDiagnostics();
@@ -243,12 +237,6 @@ class BikSAFEApp {
       this.setControlsOpen(!this.controlsOpen);
     });
 
-    this.rideViewButton.addEventListener("click", () => {
-      this.setViewMode("ride");
-    });
-    this.visionViewButton.addEventListener("click", () => {
-      this.setViewMode("vision");
-    });
 
     this.soundButton.addEventListener("click", async () => {
       await this.feedback.prime();
@@ -1006,7 +994,7 @@ class BikSAFEApp {
     this.ui.setSettingsOpen(false);
     this.ui.setDiagnosticsOpen(false);
     this.setControlsOpen(false);
-    this.setViewMode("ride");
+    this.setViewMode("vision");
     this.ui.updateHealth(this.healthSnapshot);
 
     this.ui.setLoading(4, "Review safety notice.");

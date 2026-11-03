@@ -95,7 +95,7 @@ body.starting .setup-direction, body.starting .advanced-setup { display: none; }
 .health-banner { position: fixed; z-index: 7; top: calc(var(--safe-area-top) + 320px); left: var(--gutter); right: var(--gutter); padding: 14px 16px; border: 1px solid #ffba5855; border-radius: 12px; background: #292417f5; }
 .health-banner strong { display: block; color: #ffcc82; font-size: 13px; margin-bottom: 5px; }
 .health-banner span { display: block; color: #e1d9c8; font-size: 12px; line-height: 1.4; }
-.ride-dock { position: fixed; z-index: 6; bottom: calc(var(--safe-area-bottom) + 20px); left: var(--gutter); right: var(--gutter); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.ride-dock { position: fixed; z-index: 6; bottom: calc(var(--safe-area-bottom) + 20px); left: var(--gutter); right: var(--gutter); display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .dock-button { border: 0; background: #272a21; min-height: 72px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 6px; font-size: 11px; }
 .dock-button > span:first-child { font-size: 22px; line-height: 1; }
 .dock-button strong { font-weight: 500; color: var(--muted); }

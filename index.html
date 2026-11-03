@@ -17,7 +17,7 @@
   <link rel="dns-prefetch" href="https://storage.googleapis.com" />
   <link rel="stylesheet" href="./styles.css" />
 </head>
-<body data-zone="clear" data-view="ride">
+<body data-zone="clear" data-view="vision">
   <div id="loading" class="screen screen--loading">
     <h1 class="setup-brand">BikSAFE</h1>
     <div class="setup-illustration" aria-hidden="true">
@@ -92,10 +92,6 @@
   <header class="topbar"><strong id="camera-mode-label">Front watch</strong></header>
 
   <section id="control-tray" class="control-tray" hidden aria-label="Ride controls">
-    <div class="view-switch" role="group" aria-label="Display view">
-      <button id="ride-view-button" class="view-switch__button" type="button">Ride</button>
-      <button id="vision-view-button" class="view-switch__button" type="button">Vision</button>
-    </div>
     <div class="mode-switch" role="group" aria-label="Camera mode">
       <button id="front-mode-button" class="mode-switch__button" type="button">Front</button>
       <button id="rear-mode-button" class="mode-switch__button" type="button">Rear</button>
@@ -137,7 +133,6 @@
   <p class="paused-notice" id="paused-notice" role="status" hidden>Detection and alerts paused. Camera stays on.</p>
   <nav class="ride-dock" aria-label="Ride controls">
     <button id="sound-button" class="dock-button" type="button" aria-pressed="true"><span aria-hidden="true">♪</span><span>Sound <strong id="sound-button-value">On</strong></span></button>
-    <button id="camera-view-button" class="dock-button" type="button" aria-pressed="false"><span aria-hidden="true">▣</span><span>Camera <strong id="camera-view-value">Off</strong></span></button>
     <button id="pause-button" class="dock-button dock-button--primary" type="button" aria-pressed="false"><span id="pause-symbol" aria-hidden="true">Ⅱ</span><span id="pause-label">Pause</span></button>
     <button id="controls-toggle-button" class="dock-button" type="button" aria-expanded="false" aria-controls="control-tray"><span aria-hidden="true">&bull;&bull;&bull;</span><span class="action-chip__value">Menu</span></button>
   </nav>
@@ -300,7 +295,7 @@
     <section><h2>Start a ride</h2><p>Mount your phone securely and point the camera toward the traffic you want to watch. Choose Ahead or Behind, then Start ride and allow camera access.</p></section>
     <section><h2>Change watch direction</h2><p>Open Menu during a ride and choose Front or Rear. Check that the camera is aimed correctly after switching.</p></section>
     <section><h2>Border glow and distance meter</h2><p>The border changes from lime to yellow to red as the warning level increases. The right-side scale shows estimated vehicle distances, with closer vehicles nearer the bottom. No marker does not mean the road is clear. Distances are approximate.</p></section>
-    <section><h2>Sound and camera view</h2><p>Sound controls audio alerts. Camera shows or hides the live image; detection continues with the image hidden. Vibration support depends on your browser and device.</p></section>
+    <section><h2>Sound and camera</h2><p>The live camera view stays visible during a ride. Sound controls audio alerts. Vibration support depends on your browser and device. Use End ride to stop the camera.</p></section>
     <section><h2>Pause or end</h2><p>Pause stops detection and new alerts but leaves the camera on. Resume restarts detection. Menu → End ride stops the camera and detection and returns to the home screen. Export any timing recording before ending; it is not saved automatically.</p></section>
     <section><h2>Settings and diagnostics</h2><p>Detection settings on the home screen select the model for the next ride. Experimental models are unvalidated on iPhone. During a ride, Menu provides distance-zone tuning, Diagnostics, and timing exports.</p></section>
     <section><h2>If detection stops</h2><p>Read the on-screen fault message. Check camera permission and the network connection used to download the model. Keep the app visible; switching tabs or locking the screen can interrupt detection.</p></section>

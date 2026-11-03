@@ -1,4 +1,4 @@
-const CACHE_VERSION = "biksafe-v15-help-end-ride";
+const CACHE_VERSION = "biksafe-v16-camera-always-visible";
 const APP_SHELL = [
   "./",
   "./index.html",

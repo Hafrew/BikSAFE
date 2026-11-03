@@ -36,8 +36,6 @@ export class HudController {
       diagnosticsFov: document.getElementById("diagnostics-fov"),
       controlsToggleButton: document.getElementById("controls-toggle-button"),
       controlTray: document.getElementById("control-tray"),
-      rideViewButton: document.getElementById("ride-view-button"),
-      visionViewButton: document.getElementById("vision-view-button"),
       cameraModeLabel: document.getElementById("camera-mode-label"),
       backendValue: document.getElementById("backend-value"),
       frontModeButton: document.getElementById("front-mode-button"),
@@ -115,12 +113,7 @@ export class HudController {
   setViewMode(viewMode) {
     const activeView = viewMode === "vision" ? "vision" : "ride";
     document.body.dataset.view = activeView;
-    this.refs.rideViewButton.classList.toggle("is-active", activeView === "ride");
-    this.refs.visionViewButton.classList.toggle("is-active", activeView === "vision");
-    this.refs.rideViewButton.setAttribute("aria-pressed", String(activeView === "ride"));
-    this.refs.visionViewButton.setAttribute("aria-pressed", String(activeView === "vision"));
-    document.getElementById("camera-view-button").setAttribute("aria-pressed", String(activeView === "vision"));
-    document.getElementById("camera-view-value").textContent = activeView === "vision" ? "On" : "Off";
+
   }
 
   setPaused(paused) {
