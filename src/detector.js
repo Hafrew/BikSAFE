@@ -1,7 +1,11 @@
 import {
+  DETECTION_CANDIDATE_LIMIT,
   DETECTION_LIMIT,
+  DETECTION_MIN_SCORE,
   DISTANCE_ESTIMATION,
   FALLBACK_RISK_PROFILES,
+  EXPERIMENTAL_MODELS,
+  FRESHNESS,
   INFERENCE,
   MODEL_BASE,
   MODEL_CHOICES,
@@ -18,6 +22,14 @@ import {
   metersToCarLengths,
   normalizeSettings,
 } from "./preferences.js";
+import { deriveThreatMetrics, rankThreats } from "./threat.js";
+import { analyzeSceneQuality } from "./scene-quality.js";
+import { normalizeAndFilterPredictions } from "./detection-filter.js";
+import { estimateRangeFromBox, getCameraFocalLengths } from "./range.js";
+import { associateGlobally } from "./tracking.js";
+import { resolveFrameObservation } from "./frame-timing.js";
+import { CandidateInferenceEngine } from "./candidate-engine.js";
+import { canUseWorkerInference, WorkerCocoInferenceEngine } from "./inference-engine.js";
 
 const MAX_CONSECUTIVE_INFERENCE_ERRORS = 3;
 
@@ -129,14 +141,6 @@ function getZoneSeverity(zone) {
   return 0;
 }
 
-function toDisplayLabel(className) {
-  if (className === "motorcycle") {
-    return "Motorcycle";
-  }
-
-  return className.charAt(0).toUpperCase() + className.slice(1);
-}
-
 export class DetectorError extends Error {
   constructor(code, message, cause = null) {
     super(message);
@@ -147,19 +151,41 @@ export class DetectorError extends Error {
 }
 
 export class VehicleDetector {
-  constructor(video, { onStatus } = {}) {
+  constructor(video, { onStatus, getSourceState } = {}) {
     this.video = video;
     this.onStatus = onStatus;
+    this.getSourceState = getSourceState ?? (() => ({}));
     this.model = null;
     this.modelBase = MODEL_BASE;
+    this.requestedModelBase = MODEL_BASE;
     this.modelLabel = MODEL_LABELS[MODEL_BASE];
     this.modelPromise = null;
+    this.workerFallbackAttempted = false;
+    this.workerInferenceRequested =
+      new URLSearchParams(window.location.search).get("worker") === "1";
     this.backend = "Pending";
     this.mode = "front";
     this.settings = normalizeSettings(DEFAULT_SETTINGS);
+    this.enabled = false;
+    this.sessionEpoch = 0;
+    this.inferenceCounters = { started: 0, published: 0, expired: 0, failed: 0, discardedSession: 0, nonAdvancing: 0 };
+    this.trackingTimestampOrigin = null;
+    this.trackingObservedAt = null;
     this.inferenceInFlight = false;
     this.nextInferenceAt = 0;
     this.avgInferenceMs = INFERENCE.startingIntervalMs;
+    this.sourceGeneration = 0;
+    this.latestFrame = null;
+    this.lastProcessedFrameSequence = 0;
+    this.snapshotSequence = 0;
+    this.inferenceFps = 0;
+    this.lastInferenceCompletedAt = 0;
+    this.lastQualitySampleAt = 0;
+    this.sceneQuality = {
+      state: "UNKNOWN",
+      score: 0,
+      reason: "Waiting for a camera quality sample.",
+    };
     this.snapshot = this.createEmptySnapshot();
     this.tracks = [];
     this.nextTrackId = 1;
@@ -171,6 +197,13 @@ export class VehicleDetector {
       alpha: false,
       desynchronized: true,
     });
+    this.qualityCanvas = document.createElement("canvas");
+    this.qualityCanvas.width = 32;
+    this.qualityCanvas.height = 18;
+    this.qualityCtx = this.qualityCanvas.getContext("2d", {
+      alpha: false,
+      willReadFrequently: true,
+    });
   }
 
   createEmptySnapshot() {
@@ -181,6 +214,14 @@ export class VehicleDetector {
       count: 0,
       risk: 0,
       latencyMs: 0,
+      observationAgeMs: 0,
+      sourceFrameAt: 0,
+      sourceTimestampOrigin: "unavailable",
+      timings: null,
+      sourceGeneration: this.sourceGeneration,
+      inferenceFps: this.inferenceFps,
+      sceneQuality: this.sceneQuality,
+      sequence: this.snapshotSequence,
       inferenceSize: "--",
       modelLabel: this.modelLabel,
       backend: this.backend,
@@ -192,9 +233,11 @@ export class VehicleDetector {
 
   setSettings(settings) {
     this.settings = normalizeSettings(settings);
+    this.snapshotSequence += 1;
     this.snapshot = {
       ...this.snapshot,
       thresholds: this.getModeThresholds(),
+      sequence: this.snapshotSequence,
     };
   }
 
@@ -208,6 +251,7 @@ export class VehicleDetector {
     }
 
     this.modelBase = base;
+    this.requestedModelBase = base;
     this.modelLabel = MODEL_LABELS[base] ?? base;
     this.snapshot = {
       ...this.snapshot,
@@ -281,10 +325,33 @@ export class VehicleDetector {
 
     if (!this.modelPromise) {
       this.modelPromise = (async () => {
-        await this.configureBackend();
-
+        if (EXPERIMENTAL_MODELS.has(this.modelBase)) {
+          const requested = this.modelBase;
+          try {
+            this.emitStatus("model-loading", { state: "ready", message: `Loading ${this.modelLabel}...` });
+            this.model = await CandidateInferenceEngine.create(requested);
+            this.backend = `worker-${this.model.backend}`;
+            this.snapshot = { ...this.snapshot, modelLabel: this.modelLabel, backend: this.backend };
+            this.emitStatus("model-experimental", {
+              state: "degraded", message: `${this.modelLabel}: accuracy and iPhone performance have not been validated.`,
+            });
+            return { label: this.modelLabel, base: this.modelBase, backend: this.backend };
+          } catch (error) {
+            this.model = null;
+            this.modelBase = MODEL_BASE;
+            this.modelLabel = MODEL_LABELS[MODEL_BASE];
+            this.emitStatus("candidate-fallback", {
+              state: "degraded", message: `${MODEL_LABELS[requested]} unavailable; using COCO SSD Lite.`, error,
+            });
+          }
+        }
         const loader = window.cocoSsd;
-        if (!loader) {
+        let useWorker = this.workerInferenceRequested && canUseWorkerInference();
+        if (!useWorker) {
+          await this.configureBackend();
+        }
+
+        if (!loader && !useWorker) {
           throw new DetectorError(
             "MODEL_LIBRARY_UNAVAILABLE",
             "COCO-SSD model library did not load.",
@@ -307,7 +374,30 @@ export class VehicleDetector {
               state: "ready",
               message: `Loading ${this.modelLabel}.`,
             });
-            this.model = await loader.load({ base });
+            if (useWorker) {
+              try {
+                this.model = await WorkerCocoInferenceEngine.create(base);
+                this.backend = `worker-${this.model.backend}`;
+                this.emitStatus("backend-ready", {
+                  state: "ready",
+                  message: `Detector backend ready: ${this.backend}.`,
+                });
+              } catch (workerError) {
+                useWorker = false;
+                this.emitStatus("worker-fallback", {
+                  state: "degraded",
+                  message: "Worker inference unavailable; using the main-thread detector.",
+                  error: workerError,
+                });
+                await this.configureBackend();
+                if (!loader) {
+                  throw workerError;
+                }
+                this.model = await loader.load({ base });
+              }
+            } else {
+              this.model = await loader.load({ base });
+            }
             break;
           } catch (error) {
             lastError = error;
@@ -365,26 +455,123 @@ export class VehicleDetector {
     }
 
     this.mode = mode;
+    this.latestFrame = null;
     this.resetTracks();
   }
 
+  setSourceGeneration(generation) {
+    const nextGeneration = Number(generation);
+    if (!Number.isFinite(nextGeneration) || nextGeneration === this.sourceGeneration) {
+      return;
+    }
+
+    this.sourceGeneration = nextGeneration;
+    this.latestFrame = null;
+    this.lastProcessedFrameSequence = 0;
+    this.resetTracks();
+  }
+
+  notifyFrame(frame) {
+    if (!frame || frame.generation !== this.sourceGeneration) {
+      return;
+    }
+
+    this.latestFrame = frame;
+    const now = performance.now();
+    if (this.shouldInfer(now)) {
+      void this.runInference(frame);
+    }
+  }
+
+  start() {
+    this.enabled = true;
+    if (this.shouldInfer(performance.now())) {
+      void this.runInference(this.latestFrame);
+    }
+  }
+
+  pause() {
+    this.enabled = false;
+    this.latestFrame = null;
+    this.nextInferenceAt = 0;
+    this.resetTracks();
+  }
+
+  async warmUp(runs = 2) {
+    if (!this.model || this.video.readyState < 2 || this.video.videoWidth <= 0) {
+      return null;
+    }
+
+    const durations = [];
+    for (let index = 0; index < runs; index += 1) {
+      const startedAt = performance.now();
+      const input = this.prepareInput();
+      await this.model.detect(
+        input.source,
+        DETECTION_CANDIDATE_LIMIT,
+        DETECTION_MIN_SCORE,
+        { maxSide: INFERENCE.maxSide, sourceEpoch: this.sessionEpoch },
+      );
+      durations.push(performance.now() - startedAt);
+      this.snapshot = {
+        ...this.snapshot,
+        inferenceSize: this.model.lastFrameInfo?.inferenceSize ?? `${input.targetWidth}x${input.targetHeight}`,
+      };
+    }
+
+    durations.sort((a, b) => a - b);
+    return {
+      runs: durations.length,
+      medianMs: durations[Math.floor(durations.length / 2)],
+      maxMs: durations.at(-1),
+    };
+  }
+
+  invalidateSnapshot() {
+    this.snapshotSequence += 1;
+    this.snapshot = {
+      ...this.snapshot,
+      vehicles: [],
+      primary: null,
+      count: 0,
+      risk: 0,
+      stale: true,
+      sequence: this.snapshotSequence,
+    };
+  }
+
   resetTracks() {
+    this.sessionEpoch += 1;
     this.tracks = [];
+    this.lastQualitySampleAt = -Infinity;
+    this.trackingTimestampOrigin = null;
+    this.trackingObservedAt = null;
+    this.consecutiveInferenceErrors = 0;
+    this.lastInferenceCompletedAt = 0;
+    this.inferenceFps = 0;
+    this.snapshotSequence += 1;
     this.snapshot = {
       ...this.createEmptySnapshot(),
       modelLabel: this.modelLabel,
       backend: this.backend,
+      sequence: this.snapshotSequence,
     };
     this.lastSuccessfulInferenceAt = 0;
   }
 
   tick(now) {
+    now = Math.max(now, performance.now());
     if (this.shouldInfer(now)) {
-      void this.runInference();
+      void this.runInference(this.latestFrame);
     }
+
+    const observationAgeMs = this.snapshot.sourceFrameAt
+      ? Math.max(0, now - this.snapshot.sourceFrameAt)
+      : 0;
 
     return {
       ...this.snapshot,
+      observationAgeMs,
       thresholds: this.getModeThresholds(),
       modelLabel: this.modelLabel,
       backend: this.backend,
@@ -394,7 +581,10 @@ export class VehicleDetector {
   shouldInfer(now) {
     return (
       this.model &&
+      this.enabled &&
       !this.inferenceInFlight &&
+      this.latestFrame &&
+      this.latestFrame.sequence !== this.lastProcessedFrameSequence &&
       this.video.readyState >= 2 &&
       this.video.videoWidth > 0 &&
       now >= this.nextInferenceAt
@@ -404,6 +594,10 @@ export class VehicleDetector {
   prepareInput() {
     const videoWidth = this.video.videoWidth || 1;
     const videoHeight = this.video.videoHeight || 1;
+    if (this.model?.preprocessInWorker) {
+      return { source: this.video, targetWidth: videoWidth, targetHeight: videoHeight,
+        sourceWidth: videoWidth, sourceHeight: videoHeight };
+    }
     const scale = Math.min(1, INFERENCE.maxSide / Math.max(videoWidth, videoHeight));
     const targetWidth = Math.max(256, Math.round(videoWidth * scale));
     const targetHeight = Math.max(256, Math.round(videoHeight * scale));
@@ -418,33 +612,138 @@ export class VehicleDetector {
 
     this.workCtx.drawImage(this.video, 0, 0, targetWidth, targetHeight);
 
-    return { targetWidth, targetHeight };
+    const now = performance.now();
+    if (now - this.lastQualitySampleAt >= 500) {
+      try {
+        this.qualityCtx.drawImage(
+          this.workCanvas,
+          0,
+          0,
+          this.qualityCanvas.width,
+          this.qualityCanvas.height,
+        );
+        const sample = this.qualityCtx.getImageData(
+          0,
+          0,
+          this.qualityCanvas.width,
+          this.qualityCanvas.height,
+        );
+        this.sceneQuality = analyzeSceneQuality(
+          sample.data,
+          this.qualityCanvas.width,
+          this.qualityCanvas.height,
+        );
+      } catch {
+        this.sceneQuality = {
+          state: "DEGRADED",
+          score: 0,
+          reason: "Camera image quality could not be measured.",
+        };
+      }
+      this.lastQualitySampleAt = now;
+    }
+
+    return {
+      source: this.workCanvas,
+      targetWidth,
+      targetHeight,
+      sourceWidth: videoWidth,
+      sourceHeight: videoHeight,
+    };
   }
 
-  async runInference() {
+  async runInference(frame = this.latestFrame) {
+    if (
+      !frame || !this.enabled || !this.model || this.inferenceInFlight ||
+      frame.generation !== this.sourceGeneration ||
+      frame.sequence <= this.lastProcessedFrameSequence
+    ) {
+      return;
+    }
+
     this.inferenceInFlight = true;
+    this.inferenceCounters.started += 1;
     const startedAt = performance.now();
+    const sourceMode = this.mode;
+    const epoch = this.sessionEpoch;
+    const model = this.model;
+    const sourceGeneration = frame.generation;
+    const observation = resolveFrameObservation(frame, startedAt, this.video.currentTime);
+    const { sourceFrameAt } = observation;
+    this.lastProcessedFrameSequence = frame.sequence;
+    const isCurrentSession = () => (
+      this.enabled && epoch === this.sessionEpoch && model === this.model &&
+      sourceGeneration === this.sourceGeneration && sourceMode === this.mode &&
+      sourceGeneration === this.getSourceState().generation
+    );
 
     try {
       const input = this.prepareInput();
-      const predictions = await this.model.detect(this.workCanvas, DETECTION_LIMIT);
-      const normalized = this.normalizeDetections(predictions, input);
-      const tracked = this.trackDetections(normalized, performance.now())
-        .sort((a, b) => {
-          const aDistance = a.distanceMeters ?? Number.POSITIVE_INFINITY;
-          const bDistance = b.distanceMeters ?? Number.POSITIVE_INFINITY;
-          if (aDistance !== bDistance) {
-            return aDistance - bDistance;
-          }
+      const preparedAt = performance.now();
+      const predictions = await model.detect(
+        input.source,
+        DETECTION_CANDIDATE_LIMIT,
+        DETECTION_MIN_SCORE,
+        { maxSide: INFERENCE.maxSide, sourceEpoch: epoch },
+      );
+      const modelCompletedAt = performance.now();
 
-          return b.risk - a.risk;
-        })
-        .slice(0, DETECTION_LIMIT);
+      if (!isCurrentSession()) {
+        this.inferenceCounters.discardedSession += 1;
+        return;
+      }
+      if (model instanceof WorkerCocoInferenceEngine) {
+        this.backend = `worker-${model.backend}`;
+        if (model.lastFrameInfo?.sceneQuality) this.sceneQuality = model.lastFrameInfo.sceneQuality;
+      }
+
+      if (performance.now() - sourceFrameAt > FRESHNESS.unsafeFrameAgeMs) {
+        this.inferenceCounters.expired += 1;
+        this.invalidateSnapshot();
+        this.emitStatus("inference-expired", {
+          state: "recovering",
+          message: "Inference exceeded the observation-age limit; result discarded.",
+        });
+        return;
+      }
+
+      const normalized = this.normalizeDetections(predictions, input);
+      if (
+        this.trackingTimestampOrigin === observation.timestampOrigin &&
+        this.trackingObservedAt !== null && sourceFrameAt <= this.trackingObservedAt
+      ) {
+        this.inferenceCounters.nonAdvancing += 1;
+        this.invalidateSnapshot();
+        this.emitStatus("inference-expired", {
+          state: "recovering",
+          message: "Observation time did not advance; result discarded.",
+        });
+        return;
+      }
+      if (this.trackingTimestampOrigin !== observation.timestampOrigin) {
+        // Mixing capture and sampling timestamps would fabricate range velocity.
+        this.tracks = [];
+      }
+      this.trackingTimestampOrigin = observation.timestampOrigin;
+      this.trackingObservedAt = sourceFrameAt;
+      const tracked = rankThreats(
+        this.trackDetections(normalized, sourceFrameAt),
+      ).slice(0, DETECTION_LIMIT);
 
       const primary = tracked[0] ?? null;
       const zone = primary?.zone ?? "CLEAR";
-      const latencyMs = Math.round(performance.now() - startedAt);
       const completedAt = performance.now();
+      const latencyMs = Math.round(completedAt - startedAt);
+      const observationAgeMs = Math.max(0, completedAt - sourceFrameAt);
+      if (this.lastInferenceCompletedAt > 0) {
+        const cadenceMs = Math.max(1, completedAt - this.lastInferenceCompletedAt);
+        const instantFps = 1000 / cadenceMs;
+        this.inferenceFps = this.inferenceFps > 0
+          ? lerp(this.inferenceFps, instantFps, 0.25)
+          : instantFps;
+      }
+      this.lastInferenceCompletedAt = completedAt;
+      this.snapshotSequence += 1;
 
       this.snapshot = {
         zone,
@@ -453,13 +752,32 @@ export class VehicleDetector {
         count: tracked.length,
         risk: primary?.risk ?? 0,
         latencyMs,
-        inferenceSize: `${input.targetWidth}x${input.targetHeight}`,
+        observationAgeMs,
+        sourceFrameAt,
+        sourceTimestampOrigin: observation.timestampOrigin,
+        timings: {
+          preprocessMs: preparedAt - startedAt,
+          modelCallMs: modelCompletedAt - preparedAt,
+          trackingMs: completedAt - modelCompletedAt,
+          totalMs: completedAt - startedAt,
+          frameToResultMs: observationAgeMs,
+          callbackToSampleMs: observation.metadataMatched === false
+            ? null : Math.max(0, startedAt - (frame.callbackAt ?? frame.presentedAt ?? startedAt)),
+          metadataMatched: observation.metadataMatched,
+          ...model.lastTimings,
+        },
+        sourceGeneration,
+        inferenceFps: this.inferenceFps,
+        sceneQuality: this.sceneQuality,
+        sequence: this.snapshotSequence,
+        inferenceSize: model.lastFrameInfo?.inferenceSize ?? `${input.targetWidth}x${input.targetHeight}`,
         modelLabel: this.modelLabel,
         backend: this.backend,
         thresholds: this.getModeThresholds(),
         updatedAt: completedAt,
         stale: false,
       };
+      this.inferenceCounters.published += 1;
       this.consecutiveInferenceErrors = 0;
       this.lastSuccessfulInferenceAt = completedAt;
       this.emitStatus("inference-ready", {
@@ -467,85 +785,75 @@ export class VehicleDetector {
         message: "Detector inference healthy.",
       });
     } catch (error) {
+      if (!isCurrentSession()) {
+        this.inferenceCounters.discardedSession += 1;
+        return;
+      }
+      this.inferenceCounters.failed += 1;
       this.consecutiveInferenceErrors += 1;
-      this.snapshot = {
-        ...this.snapshot,
-        stale: true,
-      };
+      this.invalidateSnapshot();
 
       this.emitStatus("inference-error", {
         state:
           this.consecutiveInferenceErrors >= MAX_CONSECUTIVE_INFERENCE_ERRORS
             ? "unsafe"
-            : "degraded",
+            : "recovering",
         message:
           this.consecutiveInferenceErrors >= MAX_CONSECUTIVE_INFERENCE_ERRORS
             ? "Detector inference is repeatedly failing."
-            : "Detector inference failed; using last known state.",
+            : "Detector inference failed; output invalidated.",
         error,
       });
+      if (model instanceof WorkerCocoInferenceEngine && error.code === "WORKER_FAILED") {
+        await this.recoverWorker(model, error);
+      }
     } finally {
-      const duration = performance.now() - startedAt;
-      this.avgInferenceMs = lerp(this.avgInferenceMs, duration, 0.28);
-      this.nextInferenceAt =
-        performance.now() +
-        clamp(
-          this.avgInferenceMs * INFERENCE.intervalMultiplier,
-          INFERENCE.minIntervalMs,
-          INFERENCE.maxIntervalMs,
-        );
+      if (epoch === this.sessionEpoch) {
+        const duration = performance.now() - startedAt;
+        this.avgInferenceMs = lerp(this.avgInferenceMs, duration, 0.28);
+        this.nextInferenceAt = startedAt + INFERENCE.targetIntervalMs;
+      }
       this.inferenceInFlight = false;
+
+      if (this.shouldInfer(performance.now())) {
+        void this.runInference(this.latestFrame);
+      }
+    }
+  }
+
+  async recoverWorker(failedModel, error) {
+    if (this.workerFallbackAttempted) return;
+    this.workerFallbackAttempted = true;
+    failedModel.terminate();
+    this.model = null;
+    this.latestFrame = null;
+    this.resetTracks();
+    if (EXPERIMENTAL_MODELS.has(this.modelBase)) {
+      this.modelBase = MODEL_BASE;
+      this.modelLabel = MODEL_LABELS[MODEL_BASE];
+    }
+    this.emitStatus("worker-fallback", {
+      state: "degraded",
+      message: "Worker stopped; loading the main-thread detector. Waiting for fresh output.",
+      error,
+    });
+    try {
+      await this.configureBackend();
+      if (!window.cocoSsd) throw new Error("Main-thread detector library is unavailable.");
+      this.model = await window.cocoSsd.load({ base: this.modelBase });
+      this.snapshot = { ...this.snapshot, backend: this.backend, modelLabel: this.modelLabel };
+    } catch (fallbackError) {
+      this.model = null;
+      this.emitStatus("inference-error", {
+        state: "unsafe",
+        message: "Worker and main-thread recovery failed. Reload to restart detection.",
+        error: fallbackError,
+      });
     }
   }
 
   normalizeDetections(predictions, input) {
-    const scaleX = (this.video.videoWidth || 1) / input.targetWidth;
-    const scaleY = (this.video.videoHeight || 1) / input.targetHeight;
-
-    return predictions
-      .map((prediction) => ({
-        class: prediction.class,
-        label: toDisplayLabel(prediction.class),
-        score: prediction.score,
-        bbox: [
-          prediction.bbox[0] * scaleX,
-          prediction.bbox[1] * scaleY,
-          prediction.bbox[2] * scaleX,
-          prediction.bbox[3] * scaleY,
-        ],
-      }))
-      .filter((prediction) => this.isUsefulPrediction(prediction));
-  }
-
-  isUsefulPrediction(prediction) {
-    if (!VEHICLE_CLASSES.has(prediction.class)) {
-      return false;
-    }
-
-    const threshold = SCORE_THRESHOLD_BY_CLASS[prediction.class] ?? 0.45;
-    if (prediction.score < threshold) {
-      return false;
-    }
-
-    const frameArea = (this.video.videoWidth || 1) * (this.video.videoHeight || 1);
-    const boxWidth = prediction.bbox[2];
-    const boxHeight = prediction.bbox[3];
-    const aspectRatio = boxWidth / Math.max(boxHeight, 1);
-    const areaRatio = (boxWidth * boxHeight) / frameArea;
-
-    if (areaRatio < TRACKING.minAreaRatio) {
-      return false;
-    }
-
-    if (Math.min(boxWidth, boxHeight) < TRACKING.minShortSidePx) {
-      return false;
-    }
-
-    if (prediction.class === "motorcycle" || prediction.class === "bicycle") {
-      return aspectRatio > 0.24 && aspectRatio < 4.2;
-    }
-
-    return aspectRatio > 0.45 && aspectRatio < 5.6;
+    return normalizeAndFilterPredictions(predictions, input);
   }
 
   trackDetections(detections, now) {
@@ -557,60 +865,56 @@ export class VehicleDetector {
     }));
     const usedTrackIds = new Set();
     const updatedTracks = [];
+    const association = associateGlobally(
+      activeTracks,
+      detections,
+      scoreTrackMatch,
+      TRACKING.minAssociationScore,
+    );
 
-    for (const detection of detections.sort((a, b) => b.score - a.score)) {
-      let bestTrack = null;
-      let bestScore = TRACKING.minAssociationScore;
-
-      for (const track of activeTracks) {
-        if (usedTrackIds.has(track.id) || track.class !== detection.class) {
-          continue;
-        }
-
-        const score = scoreTrackMatch(track, detection);
-        if (score > bestScore) {
-          bestScore = score;
-          bestTrack = track;
-        }
-      }
-
-      if (bestTrack) {
-        const dt = Math.max((now - (bestTrack.seenAt ?? now)) / 1000, 0.001);
-        const rawVelocity = detection.bbox.map(
+    for (const match of association.matches) {
+      const bestTrack = activeTracks[match.trackIndex];
+      const detection = detections[match.detectionIndex];
+      const dt = Math.max((now - (bestTrack.seenAt ?? now)) / 1000, 0.001);
+      const rawVelocity = detection.bbox.map(
           (value, index) => (value - bestTrack.bbox[index]) / dt,
-        );
+      );
 
-        bestTrack.velocity = (bestTrack.velocity ?? [0, 0, 0, 0]).map(
-          (value, index) =>
-            lerp(value, rawVelocity[index], TRACKING.velocitySmoothingAlpha),
-        );
-        bestTrack.bbox = (bestTrack.predictedBbox ?? bestTrack.bbox).map(
-          (value, index) => lerp(value, detection.bbox[index], TRACKING.smoothingAlpha),
-        );
-        bestTrack.score = lerp(bestTrack.score, detection.score, 0.5);
-        bestTrack.seenAt = now;
-        bestTrack.motionAt = now;
+      bestTrack.velocity = (bestTrack.velocity ?? [0, 0, 0, 0]).map(
+        (value, index) =>
+          lerp(value, rawVelocity[index], TRACKING.velocitySmoothingAlpha),
+      );
+      bestTrack.bbox = (bestTrack.predictedBbox ?? bestTrack.bbox).map(
+        (value, index) => lerp(value, detection.bbox[index], TRACKING.smoothingAlpha),
+      );
+      bestTrack.score = lerp(bestTrack.score, detection.score, 0.5);
+      bestTrack.seenAt = now;
+      bestTrack.motionAt = now;
+      if (bestTrack.class === detection.class) {
         bestTrack.label = detection.label;
-        bestTrack.hits = (bestTrack.hits ?? 0) + 1;
-        bestTrack.misses = 0;
-        bestTrack.matchScore = bestScore;
-        usedTrackIds.add(bestTrack.id);
-        updatedTracks.push(bestTrack);
-      } else {
-        updatedTracks.push({
-          id: this.nextTrackId++,
-          class: detection.class,
-          label: detection.label,
-          bbox: [...detection.bbox],
-          predictedBbox: [...detection.bbox],
-          velocity: [0, 0, 0, 0],
-          score: detection.score,
-          seenAt: now,
-          motionAt: now,
-          hits: 1,
-          misses: 0,
-        });
       }
+      bestTrack.hits = (bestTrack.hits ?? 0) + 1;
+      bestTrack.misses = 0;
+      bestTrack.matchScore = match.score;
+      usedTrackIds.add(bestTrack.id);
+      updatedTracks.push(bestTrack);
+    }
+
+    for (const detectionIndex of association.unmatchedDetectionIndexes) {
+      const detection = detections[detectionIndex];
+      updatedTracks.push({
+        id: this.nextTrackId++,
+        class: detection.class,
+        label: detection.label,
+        bbox: [...detection.bbox],
+        predictedBbox: [...detection.bbox],
+        velocity: [0, 0, 0, 0],
+        score: detection.score,
+        seenAt: now,
+        motionAt: now,
+        hits: 1,
+        misses: 0,
+      });
     }
 
     const retainedTracks = activeTracks
@@ -676,38 +980,22 @@ export class VehicleDetector {
   }
 
   getCameraFocalLengths(frameWidth, frameHeight, profile = this.getActiveCameraProfile()) {
-    const horizontalFovRadians =
-      (profile.horizontalFovDegrees * Math.PI) / 180;
-    const focalLengthX = frameWidth / (2 * Math.tan(horizontalFovRadians / 2));
-    const verticalFovRadians =
-      2 * Math.atan((frameHeight / frameWidth) * Math.tan(horizontalFovRadians / 2));
-    const focalLengthY = frameHeight / (2 * Math.tan(verticalFovRadians / 2));
-
-    return {
-      focalLengthX,
-      focalLengthY,
-    };
+    return getCameraFocalLengths(
+      frameWidth,
+      frameHeight,
+      profile.horizontalFovDegrees,
+    );
   }
 
   estimateRange(track, frameWidth, frameHeight) {
-    const dimensions = VEHICLE_DIMENSIONS_METERS[track.class] ?? VEHICLE_DIMENSIONS_METERS.car;
     const cameraProfile = this.getActiveCameraProfile();
-    const { focalLengthX, focalLengthY } = this.getCameraFocalLengths(
+    const distanceMeters = estimateRangeFromBox({
+      className: track.class,
+      bbox: track.bbox,
       frameWidth,
       frameHeight,
-      cameraProfile,
-    );
-    const boxWidth = Math.max(track.bbox[2], 1);
-    const boxHeight = Math.max(track.bbox[3], 1);
-    const widthEstimate = (dimensions.width * focalLengthX) / boxWidth;
-    const heightEstimate = (dimensions.height * focalLengthY) / boxHeight;
-    const widthWeight =
-      track.class === "car" || track.class === "truck" || track.class === "bus"
-        ? 0.65
-        : 0.45;
-
-    const distanceMeters =
-      widthEstimate * widthWeight + heightEstimate * (1 - widthWeight);
+      horizontalFovDegrees: cameraProfile.horizontalFovDegrees,
+    });
 
     return {
       rawDistanceMeters: clamp(
@@ -887,12 +1175,23 @@ export class VehicleDetector {
     const candidateZone = Number.isFinite(track.distanceMeters)
       ? this.zoneCandidateFromDistance(effectiveDistanceMeters, track.zone)
       : fallback.zone;
-    const zone = Number.isFinite(track.distanceMeters)
+    const distanceZone = Number.isFinite(track.distanceMeters)
       ? this.applyZoneHysteresis(track, candidateZone, now)
       : fallback.zone;
-    const risk = Number.isFinite(track.distanceMeters)
+    const distanceRisk = Number.isFinite(track.distanceMeters)
       ? this.riskFromDistance(effectiveDistanceMeters)
       : fallback.risk;
+    const threat = deriveThreatMetrics({
+      bbox: track.bbox,
+      frameWidth,
+      effectiveDistanceMeters,
+      closingSpeedMps: track.closingSpeedMps,
+      distanceConfidence: track.distanceConfidence,
+      risk: distanceRisk,
+      zone: distanceZone,
+      hits: track.hits,
+    });
+    const risk = Math.max(distanceRisk, threat.ttcRisk * 0.9);
 
     Object.assign(track, {
       ...fallback,
@@ -907,7 +1206,11 @@ export class VehicleDetector {
       calibrationSource: range.calibrationSource,
       horizontalFovDegrees: range.horizontalFovDegrees,
       risk,
-      zone,
+      zone: threat.adjustedZone,
+      timeToCollisionSeconds: threat.timeToCollisionSeconds,
+      pathRelevance: threat.pathRelevance,
+      ttcRisk: threat.ttcRisk,
+      threatScore: threat.threatScore,
     });
 
     return { ...track };

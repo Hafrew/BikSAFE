@@ -1,4 +1,13 @@
-import { AUDIO_PROFILES, FEEDBACK_INTERVALS, HAPTIC_PATTERNS } from "./config.js";
+import {
+  AUDIO_PROFILES,
+  FEEDBACK_INTERVALS,
+  HAPTIC_PATTERNS,
+  SYSTEM_FAULT_INTERVAL_MS,
+} from "./config.js";
+
+function getSeverity(zone) {
+  return { CLEAR: 0, FAR: 1, MEDIUM: 2, CLOSE: 3 }[zone] ?? 0;
+}
 
 export class FeedbackController {
   constructor({ onStatus } = {}) {
@@ -10,6 +19,8 @@ export class FeedbackController {
     this.lastZone = "CLEAR";
     this.lastAlertAt = 0;
     this.lastHapticAt = 0;
+    this.lastSystemFaultAt = 0;
+    this.systemFaultActive = false;
     this.lastStatusKey = "";
   }
 
@@ -68,6 +79,7 @@ export class FeedbackController {
 
     const now = performance.now();
     const zoneChanged = zone !== this.lastZone;
+    const upwardEscalation = getSeverity(zone) > getSeverity(this.lastZone);
     const interval = FEEDBACK_INTERVALS[zone] ?? 2000;
 
     if (!zoneChanged && now - this.lastAlertAt < interval) {
@@ -79,11 +91,36 @@ export class FeedbackController {
     }
 
     if (this.hapticsEnabled && (zoneChanged || zone === "CLOSE")) {
-      this.vibrate(zone, now);
+      this.vibrate(zone, now, { force: upwardEscalation });
     }
 
     this.lastAlertAt = now;
     this.lastZone = zone;
+  }
+
+  handleSystemFault() {
+    const now = performance.now();
+    const enteredFault = !this.systemFaultActive;
+    this.systemFaultActive = true;
+    this.lastZone = "CLEAR";
+
+    if (!enteredFault && now - this.lastSystemFaultAt < SYSTEM_FAULT_INTERVAL_MS) {
+      return;
+    }
+
+    if (this.soundEnabled) {
+      this.playTone("SYSTEM_FAULT");
+    }
+
+    if (this.hapticsEnabled) {
+      this.vibrate("SYSTEM_FAULT", now, { force: enteredFault });
+    }
+
+    this.lastSystemFaultAt = now;
+  }
+
+  clearSystemFault() {
+    this.systemFaultActive = false;
   }
 
   playTone(zone) {
@@ -123,8 +160,8 @@ export class FeedbackController {
     }
   }
 
-  vibrate(zone, now) {
-    if (!this.supportsHaptics || now - this.lastHapticAt < 800) {
+  vibrate(zone, now, { force = false } = {}) {
+    if (!this.supportsHaptics || (!force && now - this.lastHapticAt < 800)) {
       return;
     }
 

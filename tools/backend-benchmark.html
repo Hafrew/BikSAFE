@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8" /><title>BikSafe backend benchmark</title></head>
+<body>
+  <h1>BikSafe sustained backend benchmark</h1>
+  <p>Runs 1,000 inferences per engine in alternating blocks. Use <code>?runs=100</code> for a shorter smoke check. Generated input tests runtime behavior, not detection accuracy or camera-to-alert latency.</p>
+  <output id="status">Starting...</output>
+  <button id="download" type="button" disabled>Export benchmark</button>
+  <canvas id="sample" width="640" height="384" hidden></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <script type="module" src="./backend-benchmark.js"></script>
+</body>
+</html>

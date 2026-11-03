@@ -1,0 +1,15 @@
+{
+  "name": "biksafe",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Phone-first traffic awareness app for bikes and handlebars.",
+  "scripts": {
+    "build": "node tools/build-web.mjs",
+    "test": "node --test",
+    "eval:synthetic": "node tools/evaluate-synthetic.mjs",
+    "eval:public-fixtures": "node --test tests/public-data-pipeline.test.js",
+    "eval:detections": "node tools/evaluate-detections.mjs",
+    "serve": "node tools/serve-static.mjs"
+  }
+}

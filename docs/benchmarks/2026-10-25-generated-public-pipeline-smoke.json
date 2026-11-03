@@ -1,0 +1,296 @@
+{
+  "schemaVersion": 1,
+  "source": "GENERATED_PIPELINE_FIXTURE_NOT_ACCURACY_DATA",
+  "modelBase": "lite_mobilenet_v2",
+  "detectorBackend": "worker-webgl",
+  "inputMaxSide": 640,
+  "suite": "stress",
+  "latency": {
+    "samples": 1,
+    "medianMs": 238.5,
+    "p95Ms": 238.5,
+    "maxMs": 238.5
+  },
+  "evaluation": {
+    "overall": {
+      "truePositive": 0,
+      "falsePositive": 0,
+      "falseNegative": 1,
+      "precision": null,
+      "recall": 0
+    },
+    "byClass": {
+      "car": {
+        "truePositive": 0,
+        "falsePositive": 0,
+        "falseNegative": 1,
+        "precision": null,
+        "recall": 0
+      }
+    },
+    "range": {
+      "matchedSamples": 0,
+      "medianAbsoluteErrorMeters": null,
+      "p95AbsoluteErrorMeters": null,
+      "medianAbsolutePercentageError": null,
+      "p95AbsolutePercentageError": null
+    }
+  },
+  "missingImages": [],
+  "coverage": {
+    "expectedImages": 1,
+    "evaluatedImages": 1,
+    "missingImages": [],
+    "unexpectedImages": [],
+    "duplicateExpectedIds": false,
+    "duplicateEvaluatedIds": false,
+    "invalidIds": false,
+    "complete": true
+  },
+  "complete": true,
+  "timingScope": "Model call including Worker transfer when selected; excludes image preparation, tracking and alerts.",
+  "images": [
+    {
+      "id": "generated-road-fixture.png",
+      "objects": []
+    }
+  ],
+  "stress": {
+    "variants": [
+      "blur",
+      "glare",
+      "rain",
+      "crop",
+      "occlusion",
+      "vibration"
+    ],
+    "latency": {
+      "blur": {
+        "samples": 1,
+        "medianMs": 55.899999998509884,
+        "p95Ms": 55.899999998509884,
+        "maxMs": 55.899999998509884
+      },
+      "glare": {
+        "samples": 1,
+        "medianMs": 55.600000001490116,
+        "p95Ms": 55.600000001490116,
+        "maxMs": 55.600000001490116
+      },
+      "rain": {
+        "samples": 1,
+        "medianMs": 37.100000001490116,
+        "p95Ms": 37.100000001490116,
+        "maxMs": 37.100000001490116
+      },
+      "crop": {
+        "samples": 1,
+        "medianMs": 26.699999999254942,
+        "p95Ms": 26.699999999254942,
+        "maxMs": 26.699999999254942
+      },
+      "occlusion": {
+        "samples": 1,
+        "medianMs": 25.699999999254942,
+        "p95Ms": 25.699999999254942,
+        "maxMs": 25.699999999254942
+      },
+      "vibration": {
+        "samples": 1,
+        "medianMs": 23.599999997764826,
+        "p95Ms": 23.599999997764826,
+        "maxMs": 23.599999997764826
+      }
+    },
+    "evaluation": {
+      "blur": {
+        "overall": {
+          "truePositive": 0,
+          "falsePositive": 0,
+          "falseNegative": 1,
+          "precision": null,
+          "recall": 0
+        },
+        "byClass": {
+          "car": {
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 1,
+            "precision": null,
+            "recall": 0
+          }
+        },
+        "range": {
+          "matchedSamples": 0,
+          "medianAbsoluteErrorMeters": null,
+          "p95AbsoluteErrorMeters": null,
+          "medianAbsolutePercentageError": null,
+          "p95AbsolutePercentageError": null
+        }
+      },
+      "glare": {
+        "overall": {
+          "truePositive": 0,
+          "falsePositive": 0,
+          "falseNegative": 1,
+          "precision": null,
+          "recall": 0
+        },
+        "byClass": {
+          "car": {
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 1,
+            "precision": null,
+            "recall": 0
+          }
+        },
+        "range": {
+          "matchedSamples": 0,
+          "medianAbsoluteErrorMeters": null,
+          "p95AbsoluteErrorMeters": null,
+          "medianAbsolutePercentageError": null,
+          "p95AbsolutePercentageError": null
+        }
+      },
+      "rain": {
+        "overall": {
+          "truePositive": 0,
+          "falsePositive": 0,
+          "falseNegative": 1,
+          "precision": null,
+          "recall": 0
+        },
+        "byClass": {
+          "car": {
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 1,
+            "precision": null,
+            "recall": 0
+          }
+        },
+        "range": {
+          "matchedSamples": 0,
+          "medianAbsoluteErrorMeters": null,
+          "p95AbsoluteErrorMeters": null,
+          "medianAbsolutePercentageError": null,
+          "p95AbsolutePercentageError": null
+        }
+      },
+      "crop": {
+        "overall": {
+          "truePositive": 0,
+          "falsePositive": 0,
+          "falseNegative": 1,
+          "precision": null,
+          "recall": 0
+        },
+        "byClass": {
+          "car": {
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 1,
+            "precision": null,
+            "recall": 0
+          }
+        },
+        "range": {
+          "matchedSamples": 0,
+          "medianAbsoluteErrorMeters": null,
+          "p95AbsoluteErrorMeters": null,
+          "medianAbsolutePercentageError": null,
+          "p95AbsolutePercentageError": null
+        }
+      },
+      "occlusion": {
+        "overall": {
+          "truePositive": 0,
+          "falsePositive": 0,
+          "falseNegative": 1,
+          "precision": null,
+          "recall": 0
+        },
+        "byClass": {
+          "car": {
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 1,
+            "precision": null,
+            "recall": 0
+          }
+        },
+        "range": {
+          "matchedSamples": 0,
+          "medianAbsoluteErrorMeters": null,
+          "p95AbsoluteErrorMeters": null,
+          "medianAbsolutePercentageError": null,
+          "p95AbsolutePercentageError": null
+        }
+      },
+      "vibration": {
+        "overall": {
+          "truePositive": 0,
+          "falsePositive": 0,
+          "falseNegative": 1,
+          "precision": null,
+          "recall": 0
+        },
+        "byClass": {
+          "car": {
+            "truePositive": 0,
+            "falsePositive": 0,
+            "falseNegative": 1,
+            "precision": null,
+            "recall": 0
+          }
+        },
+        "range": {
+          "matchedSamples": 0,
+          "medianAbsoluteErrorMeters": null,
+          "p95AbsoluteErrorMeters": null,
+          "medianAbsolutePercentageError": null,
+          "p95AbsolutePercentageError": null
+        }
+      }
+    },
+    "images": {
+      "blur": [
+        {
+          "id": "generated-road-fixture.png",
+          "objects": []
+        }
+      ],
+      "glare": [
+        {
+          "id": "generated-road-fixture.png",
+          "objects": []
+        }
+      ],
+      "rain": [
+        {
+          "id": "generated-road-fixture.png",
+          "objects": []
+        }
+      ],
+      "crop": [
+        {
+          "id": "generated-road-fixture.png",
+          "objects": []
+        }
+      ],
+      "occlusion": [
+        {
+          "id": "generated-road-fixture.png",
+          "objects": []
+        }
+      ],
+      "vibration": [
+        {
+          "id": "generated-road-fixture.png",
+          "objects": []
+        }
+      ]
+    }
+  }
+}

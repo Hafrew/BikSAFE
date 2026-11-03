@@ -31,8 +31,9 @@ export const DEFAULT_SETTINGS = {
   },
 };
 
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
+function clamp(value, min, max, fallback = min) {
+  const finiteValue = Number.isFinite(value) ? value : fallback;
+  return Math.min(max, Math.max(min, finiteValue));
 }
 
 function normalizeThresholdPair(pair, fallback) {
@@ -40,11 +41,13 @@ function normalizeThresholdPair(pair, fallback) {
     Number(pair?.dangerMeters ?? fallback.dangerMeters),
     1.5,
     24,
+    fallback.dangerMeters,
   );
   const warningMeters = clamp(
     Number(pair?.warningMeters ?? fallback.warningMeters),
     dangerMeters + 0.5,
     40,
+    Math.max(fallback.warningMeters, dangerMeters + 0.5),
   );
 
   return {
@@ -54,13 +57,19 @@ function normalizeThresholdPair(pair, fallback) {
 }
 
 function normalizeCameraProfile(profile, fallback) {
+  const calibrationMethod = profile?.calibrationMethod === "known-reference"
+    ? "known-reference"
+    : "estimate";
+
   return {
     horizontalFovDegrees: clamp(
       Number(profile?.horizontalFovDegrees ?? fallback.horizontalFovDegrees),
       DISTANCE_ESTIMATION.horizontalFovDegreesMin,
       DISTANCE_ESTIMATION.horizontalFovDegreesMax,
+      fallback.horizontalFovDegrees,
     ),
-    calibrated: Boolean(profile?.calibrated),
+    calibrationMethod,
+    calibrated: calibrationMethod === "known-reference" && Boolean(profile?.calibrated),
   };
 }
 
@@ -83,6 +92,7 @@ export function normalizeSettings(input = {}) {
         Number(input.calibration?.carLengthMeters ?? DEFAULT_SETTINGS.calibration.carLengthMeters),
         3.5,
         5.5,
+        DEFAULT_SETTINGS.calibration.carLengthMeters,
       ),
       cameraProfiles: {
         front: normalizeCameraProfile(
@@ -187,7 +197,8 @@ export function updateCameraProfileSetting(settings, mode, key, value) {
         [nextMode]: {
           ...normalized.calibration.cameraProfiles[nextMode],
           [key]: Number(value),
-          calibrated: true,
+          calibrationMethod: "estimate",
+          calibrated: false,
         },
       },
     },

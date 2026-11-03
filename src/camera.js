@@ -1,8 +1,9 @@
 import { CAMERA_CONSTRAINTS, CAMERA_MODES } from "./config.js";
+import { describeVideoFrame } from "./frame-timing.js";
 
 const METADATA_TIMEOUT_MS = 3500;
-const STALE_FRAME_MS = 1500;
-const WATCHDOG_INTERVAL_MS = 500;
+const STALE_FRAME_MS = 750;
+const WATCHDOG_INTERVAL_MS = 150;
 
 export class CameraError extends Error {
   constructor(code, message, cause = null) {
@@ -14,21 +15,30 @@ export class CameraError extends Error {
 }
 
 export class CameraController {
-  constructor(video, { onStatus } = {}) {
+  constructor(video, { onStatus, onFrame, demoMode = false } = {}) {
     this.video = video;
     this.onStatus = onStatus;
+    this.onFrame = onFrame;
+    this.demoMode = demoMode;
+    this.syntheticSession = null;
     this.stream = null;
     this.mode = "front";
     this.status = "stopped";
     this.statusMessage = "";
     this.lastFrameAt = 0;
     this.lastVideoTime = 0;
+    this.generation = 0;
+    this.frameSequence = 0;
     this.watchdogTimer = null;
     this.frameCallbackId = null;
     this.boundTrackHandlers = [];
   }
 
   async start(mode = "front") {
+    if (this.demoMode) {
+      return this.startSynthetic(mode);
+    }
+
     const previousStream = this.stream;
     const previousMode = this.mode;
     this.emitStatus("starting", `Starting ${CAMERA_MODES[mode].label} camera.`);
@@ -56,6 +66,8 @@ export class CameraController {
         previousStream.getTracks().forEach((track) => track.stop());
       }
 
+      this.generation += 1;
+      this.frameSequence = 0;
       this.lastFrameAt = performance.now();
       this.lastVideoTime = this.video.currentTime;
       this.startFrameWatchdog();
@@ -180,9 +192,10 @@ export class CameraController {
       return;
     }
 
-    this.frameCallbackId = this.video.requestVideoFrameCallback(() => {
-      this.lastFrameAt = performance.now();
+    this.frameCallbackId = this.video.requestVideoFrameCallback((now, metadata) => {
+      this.lastFrameAt = now;
       this.lastVideoTime = this.video.currentTime;
+      this.emitFrame(now, metadata?.mediaTime ?? this.video.currentTime, metadata);
 
       if (this.status === "stale" || this.status === "muted") {
         this.emitStatus("live", "Camera frames resumed.");
@@ -204,6 +217,7 @@ export class CameraController {
     if (this.video.currentTime !== this.lastVideoTime) {
       this.lastVideoTime = this.video.currentTime;
       this.lastFrameAt = performance.now();
+      this.emitFrame(this.lastFrameAt, this.video.currentTime);
 
       if (this.status === "stale" || this.status === "muted") {
         this.emitStatus("live", "Camera frames resumed.");
@@ -253,6 +267,160 @@ export class CameraController {
     return this.status === "live" && this.hasLiveTrack();
   }
 
+  async startSynthetic(mode = "front") {
+    if (typeof HTMLCanvasElement.prototype.captureStream !== "function") {
+      throw new CameraError(
+        "SYNTHETIC_CAMERA_UNAVAILABLE",
+        "Synthetic camera streams are not supported in this browser.",
+      );
+    }
+
+    const previousStream = this.stream;
+    const previousSession = this.syntheticSession;
+    const nextSession = this.createSyntheticSession(mode);
+    let nextStream = null;
+    this.emitStatus("starting", `Starting synthetic ${CAMERA_MODES[mode].label}.`);
+
+    try {
+      nextStream = nextSession.canvas.captureStream(30);
+      this.unbindTrackHandlers();
+      this.stream = nextStream;
+      this.mode = mode;
+      this.video.srcObject = nextStream;
+      this.bindTrackHandlers(nextStream);
+      await this.waitForMetadata();
+      await this.playVideo();
+
+      if (previousStream && previousStream !== nextStream) {
+        previousStream.getTracks().forEach((track) => track.stop());
+      }
+      this.stopSyntheticSession(previousSession);
+      this.syntheticSession = nextSession;
+      this.generation += 1;
+      this.frameSequence = 0;
+      this.lastFrameAt = performance.now();
+      this.lastVideoTime = this.video.currentTime;
+      this.startFrameWatchdog();
+      this.emitStatus("live", `Synthetic ${CAMERA_MODES[mode].label} live.`);
+      return nextStream;
+    } catch (error) {
+      this.stopSyntheticSession(nextSession);
+      nextStream?.getTracks().forEach((track) => track.stop());
+      this.stream = previousStream ?? null;
+      this.syntheticSession = previousSession ?? null;
+      this.video.srcObject = previousStream ?? null;
+      if (previousStream && this.hasLiveTrack(previousStream)) {
+        this.bindTrackHandlers(previousStream);
+        this.startFrameWatchdog();
+        this.emitStatus("live", "Previous synthetic camera still live.");
+      } else {
+        this.stopFrameWatchdog();
+        this.emitStatus("failed", "Synthetic camera failed to start.", error);
+      }
+      throw error instanceof CameraError
+        ? error
+        : new CameraError(
+          "SYNTHETIC_CAMERA_START_FAILED",
+          "Synthetic camera failed to start.",
+          error,
+        );
+    }
+  }
+
+  createSyntheticSession(mode) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 1280;
+    canvas.height = 720;
+    const context = canvas.getContext("2d", { alpha: false });
+    const session = { canvas, context, animationFrameId: null, active: true };
+    const startedAt = performance.now();
+
+    const draw = (now) => {
+      if (!session.active) {
+        return;
+      }
+      const elapsed = (now - startedAt) / 1000;
+      const sky = context.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, "#87b6cf");
+      sky.addColorStop(0.48, "#d4d2bd");
+      sky.addColorStop(0.49, "#4b5557");
+      sky.addColorStop(1, "#171c1e");
+      context.fillStyle = sky;
+      context.fillRect(0, 0, canvas.width, canvas.height);
+
+      context.fillStyle = "#c9b75d";
+      for (let index = 0; index < 14; index += 1) {
+        const y = 390 + index * 28;
+        const width = 10 + index * 4;
+        context.fillRect(canvas.width / 2 - width / 2, y, width, 13);
+      }
+
+      for (let index = 0; index < 80; index += 1) {
+        const x = (index * 173 + Math.sin(elapsed + index) * 24) % canvas.width;
+        const y = (index * 97) % canvas.height;
+        const shade = 55 + (index * 37) % 150;
+        context.fillStyle = `rgb(${shade}, ${Math.min(235, shade + 18)}, ${Math.min(245, shade + 28)})`;
+        context.fillRect(x, y, 4 + (index % 5), 4 + ((index * 3) % 7));
+      }
+
+      context.fillStyle = mode === "rear" ? "#b85d55" : "#425d75";
+      const vehicleScale = 0.85 + (Math.sin(elapsed * 0.7) + 1) * 0.2;
+      const vehicleWidth = 210 * vehicleScale;
+      const vehicleHeight = 105 * vehicleScale;
+      const vehicleX = canvas.width / 2 - vehicleWidth / 2;
+      const vehicleY = 330 - vehicleHeight / 2;
+      context.fillRect(vehicleX, vehicleY, vehicleWidth, vehicleHeight);
+      context.fillStyle = "#b8d8e5";
+      context.fillRect(
+        vehicleX + vehicleWidth * 0.2,
+        vehicleY + vehicleHeight * 0.15,
+        vehicleWidth * 0.6,
+        vehicleHeight * 0.32,
+      );
+      context.fillStyle = "#101416";
+      context.beginPath();
+      context.arc(vehicleX + vehicleWidth * 0.22, vehicleY + vehicleHeight, 22 * vehicleScale, 0, Math.PI * 2);
+      context.arc(vehicleX + vehicleWidth * 0.78, vehicleY + vehicleHeight, 22 * vehicleScale, 0, Math.PI * 2);
+      context.fill();
+
+      session.animationFrameId = window.requestAnimationFrame(draw);
+    };
+    session.animationFrameId = window.requestAnimationFrame(draw);
+    return session;
+  }
+
+  stopSyntheticSession(session = this.syntheticSession) {
+    if (!session) {
+      return;
+    }
+    session.active = false;
+    if (session.animationFrameId !== null) {
+      window.cancelAnimationFrame(session.animationFrameId);
+    }
+    if (session === this.syntheticSession) {
+      this.syntheticSession = null;
+    }
+  }
+
+  emitFrame(presentedAt, mediaTime, metadata) {
+    this.frameSequence += 1;
+    this.onFrame?.({
+      sequence: this.frameSequence,
+      generation: this.generation,
+      ...describeVideoFrame(presentedAt, mediaTime, metadata),
+    });
+  }
+
+  getSourceState() {
+    return {
+      generation: this.generation,
+      lastFrameAt: this.lastFrameAt,
+      frameSequence: this.frameSequence,
+      mode: this.mode,
+      status: this.status,
+    };
+  }
+
   emitStatus(state, message, error = null) {
     if (state === this.status && message === this.statusMessage && !error) {
       return;
@@ -266,6 +434,8 @@ export class CameraController {
       message,
       error,
       lastFrameAt: this.lastFrameAt,
+      generation: this.generation,
+      frameSequence: this.frameSequence,
       updatedAt: performance.now(),
     });
   }
@@ -276,6 +446,7 @@ export class CameraController {
     }
 
     this.stopFrameWatchdog();
+    this.stopSyntheticSession();
     this.unbindTrackHandlers();
     this.stream.getTracks().forEach((track) => track.stop());
     this.stream = null;

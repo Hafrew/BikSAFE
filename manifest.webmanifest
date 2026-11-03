@@ -1,0 +1,10 @@
+{
+  "name": "BikSAFE",
+  "short_name": "BikSAFE",
+  "description": "Traffic awareness aid for bikes and handlebars.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#08151f",
+  "theme_color": "#08151f",
+  "orientation": "portrait"
+}
