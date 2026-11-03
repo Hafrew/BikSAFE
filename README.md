@@ -37,3 +37,7 @@ Then open the site in a mobile browser and allow camera access.
 ## Notes
 
 Distance estimates are approximate. The app currently infers distance from detected vehicle size in the camera frame, so real-world tuning on the target phone and camera position is important before relying on it in motion.
+
+## Mark III experimental preview
+
+See [preview instructions](docs/EXPERIMENTAL_PREVIEW.md) for hosting, model choices, deferred validation, and the proposed UI direction. Build with npm run build; Vercel serves dist/app. This branch contains the web preview only.

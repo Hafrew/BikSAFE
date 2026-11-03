@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BikSAFE comparison tools</title>
+  <style>
+    body { max-width: 44rem; margin: 2rem auto; padding: 0 1rem; background: #08151f; color: #edf8ff; font: 16px/1.6 system-ui, sans-serif; }
+    a { color: #8ff2d3; } li { margin: .8rem 0; } code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <h1>BikSAFE comparison tools</h1>
+  <p>The November 2 model and pipeline changes have not been tested. Use a stationary setup for the first checks.</p>
+  <h2>Choose a model</h2>
+  <ul>
+    <li><a href="../?model=lite_mobilenet_v2">COCO Lite: main-thread baseline</a></li>
+    <li><a href="../?model=lite_mobilenet_v2&amp;worker=1">COCO Lite: Worker preprocessing</a></li>
+    <li><a href="../?model=efficientdet_lite0">EfficientDet-Lite0: experimental Worker, about 4.6 MB</a></li>
+    <li><a href="../?model=rfdetr_nano">RF-DETR Nano: experimental Worker, about 56 MB</a></li>
+  </ul>
+  <p>For the synthetic camera, add <code>&amp;demo=1</code> to an app link. This checks the pipeline; it does not measure detection accuracy.</p>
+  <h2>Evaluation</h2>
+  <ul>
+    <li><a href="public-eval.html">Public-image model evaluator</a></li>
+    <li><a href="worker-smoke.html">COCO Worker smoke check</a></li>
+    <li><a href="backend-benchmark.html">COCO baseline backend benchmark: 1,000 runs per engine</a></li>
+  </ul>
+  <p>In the app, use Menu → Diag Stats → Record timings, then Export timings. Reports identify the requested and active model, runtime, backend and build fingerprint.</p>
+</body>
+</html>

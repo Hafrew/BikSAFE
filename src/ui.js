@@ -20,7 +20,11 @@ function formatCarLengths(value) {
 }
 
 function formatLatency(latencyMs) {
-  return latencyMs > 0 ? `${latencyMs}ms` : "--";
+  return latencyMs > 0 ? `${Math.round(latencyMs)}ms` : "--";
+}
+
+function formatRate(rate) {
+  return Number.isFinite(rate) && rate > 0 ? rate.toFixed(1) : "--";
 }
 
 function buildThreatDetail(snapshot, mode) {
@@ -31,6 +35,11 @@ function buildThreatDetail(snapshot, mode) {
   const subject = snapshot.primary.label;
   const direction = CAMERA_MODES[mode].directionLabel;
   const closingSpeed = snapshot.primary.closingSpeedMps;
+  const ttc = snapshot.primary.timeToCollisionSeconds;
+
+  if (Number.isFinite(ttc) && ttc <= 8) {
+    return `${subject} ${direction} / TTC ${ttc.toFixed(1)}s`;
+  }
 
   if (Number.isFinite(closingSpeed) && closingSpeed > 1.2) {
     return `${subject} ${direction} / closing`;
@@ -41,7 +50,7 @@ function buildThreatDetail(snapshot, mode) {
 
 function buildStatusMessage(snapshot, mode, thresholds) {
   if (!snapshot.primary) {
-    return `Danger under ${formatMeters(thresholds.dangerMeters)}. Warning under ${formatMeters(thresholds.warningMeters)} in ${mode} mode.`;
+    return `Monitoring ${mode} view. No supported vehicle is currently detected.`;
   }
 
   const label = ZONE_STYLES[snapshot.zone]?.displayLabel ?? snapshot.zone;
@@ -86,6 +95,7 @@ export class HudController {
       vehicleCount: document.getElementById("vehicle-count"),
       fpsValue: document.getElementById("fps-value"),
       latencyValue: document.getElementById("latency-value"),
+      observationAgeValue: document.getElementById("observation-age-value"),
       soundButton: document.getElementById("sound-button"),
       soundButtonValue: document.getElementById("sound-button-value"),
       hapticsButton: document.getElementById("haptics-button"),
@@ -212,8 +222,9 @@ export class HudController {
         "Do not rely on vehicle detection until recovery completes.";
       this.refs.distanceValue.textContent = "--";
       this.refs.vehicleCount.textContent = "--";
-      this.refs.fpsValue.textContent = fps > 0 ? String(fps) : "--";
+      this.refs.fpsValue.textContent = formatRate(snapshot.inferenceFps);
       this.refs.latencyValue.textContent = "--";
+      this.refs.observationAgeValue.textContent = formatLatency(snapshot.observationAgeMs);
       this.refs.backendValue.textContent = snapshot.backend.toUpperCase();
       this.refs.statusMessage.textContent = health.message;
       this.refs.riskFill.style.transform =
@@ -232,8 +243,9 @@ export class HudController {
       ? formatMeters(snapshot.primary.distanceMeters)
       : "--";
     this.refs.vehicleCount.textContent = String(snapshot.count);
-    this.refs.fpsValue.textContent = fps > 0 ? String(fps) : "--";
+    this.refs.fpsValue.textContent = formatRate(snapshot.inferenceFps);
     this.refs.latencyValue.textContent = formatLatency(snapshot.latencyMs);
+    this.refs.observationAgeValue.textContent = formatLatency(snapshot.observationAgeMs);
     this.refs.backendValue.textContent = snapshot.backend.toUpperCase();
     this.refs.statusMessage.textContent = buildStatusMessage(snapshot, mode, thresholds);
     this.refs.riskFill.style.transform = `scaleX(${Math.max(snapshot.risk, 0.03)})`;

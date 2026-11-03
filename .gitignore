@@ -1,0 +1,29 @@
+node_modules/
+dist/
+.tmp/
+.playwright-cli/
+output/playwright/
+
+# Android release signing secrets
+android/keystore.properties
+android/*.jks
+android/app/*.jks
+
+# Native build outputs
+android/.gradle/
+android/app/build/
+android/build/
+ios/App/build/
+ios/App/Pods/
+ios/App/Podfile.lock
+ios/DerivedData/
+
+# Local editor and OS files
+.DS_Store
+Thumbs.db
+
+# Local environment and hosting credentials
+.env
+.env.*
+!.env.example
+.vercel/

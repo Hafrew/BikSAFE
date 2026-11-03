@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BikSafe public dataset evaluator</title>
+  <style>
+    body { max-width: 760px; margin: 40px auto; padding: 0 20px; font: 16px/1.5 system-ui, sans-serif; background: #08151f; color: #edf8ff; }
+    main { display: grid; gap: 18px; }
+    label { display: grid; gap: 6px; }
+    input, select, button { font: inherit; padding: 10px; }
+    button { cursor: pointer; }
+    progress { width: 100%; }
+    code { color: #8ff2d3; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>BikSafe public dataset evaluator</h1>
+    <p>Runs the production COCO preprocessing and filters locally. Selected images never leave the browser.</p>
+    <label>Imported public manifest <input id="manifest" type="file" accept="application/json,.json" /></label>
+    <label>Public image directory <input id="images" type="file" accept="image/*" webkitdirectory multiple /></label>
+    <label>Model
+      <select id="model">
+        <option value="lite_mobilenet_v2">COCO SSD Lite</option>
+        <option value="mobilenet_v2">COCO SSD V2</option>
+        <option value="mobilenet_v1">COCO SSD V1</option>
+        <option value="efficientdet_lite0">EfficientDet-Lite0 — experimental Worker</option>
+        <option value="rfdetr_nano">RF-DETR Nano — experimental Worker, ~56 MB</option>
+      </select>
+    </label>
+    <label>Inference backend
+      <select id="backend">
+        <option value="main">Main thread</option>
+        <option value="worker">Dedicated Worker</option>
+      </select>
+    </label>
+    <label>Input size
+      <select id="max-side">
+        <option value="640">640 px - production</option>
+        <option value="512">512 px - candidate</option>
+        <option value="384">384 px - low-latency candidate</option>
+      </select>
+    </label>
+    <label>Robustness suite
+      <select id="suite">
+        <option value="original">Original public images</option>
+        <option value="stress">Original plus 6 deterministic stress variants</option>
+      </select>
+    </label>
+    <button id="run" type="button">Run evaluation</button>
+    <button id="run-fixture" type="button">Run generated pipeline fixture</button>
+    <progress id="progress" max="1" value="0"></progress>
+    <output id="status">Choose a manifest and its image directory.</output>
+  </main>
+  <canvas id="work" hidden></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <script type="module" src="./public-eval.js"></script>
+</body>
+</html>

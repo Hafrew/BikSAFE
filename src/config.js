@@ -42,12 +42,18 @@ export const MODEL_CHOICES = new Set([
   "lite_mobilenet_v2",
   "mobilenet_v2",
   "mobilenet_v1",
+  "efficientdet_lite0",
+  "rfdetr_nano",
 ]);
+
+export const EXPERIMENTAL_MODELS = new Set(["efficientdet_lite0", "rfdetr_nano"]);
 
 export const MODEL_LABELS = {
   mobilenet_v1: "COCO SSD V1",
   mobilenet_v2: "COCO SSD V2",
   lite_mobilenet_v2: "COCO SSD Lite",
+  efficientdet_lite0: "EfficientDet-Lite0 (experimental)",
+  rfdetr_nano: "RF-DETR Nano (experimental)",
 };
 
 export const SCORE_THRESHOLD_BY_CLASS = {
@@ -68,12 +74,22 @@ export const VEHICLE_DIMENSIONS_METERS = {
 
 export const DETECTION_LIMIT = 8;
 
+// COCO-SSD applies this limit before BikSafe removes non-vehicle classes.
+// Keep a wider candidate pool so people, signs, and other COCO classes do not
+// crowd vehicles out of the result set.
+export const DETECTION_CANDIDATE_LIMIT = 32;
+export const DETECTION_MIN_SCORE = 0.32;
+
 export const INFERENCE = {
   maxSide: 640,
-  minIntervalMs: 80,
-  maxIntervalMs: 220,
+  targetIntervalMs: 100,
   startingIntervalMs: 120,
-  intervalMultiplier: 0.85,
+};
+
+export const FRESHNESS = {
+  degradedFrameAgeMs: 250,
+  unsafeFrameAgeMs: 500,
+  firstInferenceGraceMs: 2200,
 };
 
 export const TRACKING = {
@@ -87,8 +103,8 @@ export const TRACKING = {
   trackTtlMs: 480,
   holdTtlMs: 220,
   retainedScoreDecay: 0.985,
-  minAreaRatio: 0.0013,
-  minShortSidePx: 18,
+  minAreaRatio: 0.00025,
+  minShortSidePx: 10,
 };
 
 export const DISTANCE_ESTIMATION = {
@@ -116,6 +132,15 @@ export const RANGE_FILTER = {
   conservativeUncertaintyWeight: 0.45,
 };
 
+export const THREAT_MODEL = {
+  minimumClosingSpeedMps: 0.6,
+  warningTtcSeconds: 5,
+  dangerTtcSeconds: 2.5,
+  corridorLeftRatio: 0.22,
+  corridorRightRatio: 0.78,
+  minimumPathRelevance: 0.15,
+};
+
 export const FALLBACK_RISK_PROFILES = {
   front: {
     far: 0.18,
@@ -132,12 +157,12 @@ export const FALLBACK_RISK_PROFILES = {
 export const ZONE_STYLES = {
   CLEAR: {
     color: "#5ef2c4",
-    displayLabel: "CLEAR",
+    displayLabel: "MONITORING",
     boxColor: "#5ef2c4",
   },
   FAR: {
     color: "#5ef2c4",
-    displayLabel: "SAFE",
+    displayLabel: "VEHICLE",
     boxColor: "#5ef2c4",
   },
   MEDIUM: {
@@ -162,10 +187,14 @@ export const AUDIO_PROFILES = {
   FAR: { frequency: 300, duration: 0.08, gain: 0.045, type: "triangle" },
   MEDIUM: { frequency: 520, duration: 0.11, gain: 0.08, type: "sawtooth" },
   CLOSE: { frequency: 760, duration: 0.16, gain: 0.12, type: "square" },
+  SYSTEM_FAULT: { frequency: 180, duration: 0.34, gain: 0.1, type: "triangle" },
 };
 
 export const HAPTIC_PATTERNS = {
   FAR: [18],
   MEDIUM: [32, 44, 32],
   CLOSE: [52, 36, 52, 36, 72],
+  SYSTEM_FAULT: [110, 90, 110, 90, 260],
 };
+
+export const SYSTEM_FAULT_INTERVAL_MS = 4000;

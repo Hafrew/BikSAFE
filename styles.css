@@ -287,7 +287,12 @@ body[data-zone="close"] .glow-layer {
   z-index: 11;
 }
 
-.error-card {
+.screen--safety {
+  z-index: 12;
+}
+
+.error-card,
+.safety-card {
   width: min(100%, 420px);
   padding: 28px 24px;
   border-radius: 0;
@@ -297,23 +302,62 @@ body[data-zone="close"] .glow-layer {
   text-align: center;
 }
 
-.error-card__eyebrow {
+.safety-card {
+  width: min(100%, 480px);
+  text-align: left;
+}
+
+.error-card__eyebrow,
+.safety-card__eyebrow {
   color: #ff9cb0;
   font-size: 11px;
   margin-bottom: 12px;
 }
 
-.error-card h2 {
+.safety-card__eyebrow {
+  color: var(--zone-color);
+  font-family: var(--font-data);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.error-card h2,
+.safety-card h2 {
   font-size: 28px;
   line-height: 0.98;
   letter-spacing: 0.03em;
 }
 
-.error-card p {
+.error-card p,
+.safety-list,
+.safety-check {
   margin-top: 12px;
   color: var(--muted);
   line-height: 1.5;
   font-size: 15px;
+}
+
+.safety-list {
+  padding-left: 20px;
+}
+
+.safety-list li + li {
+  margin-top: 8px;
+}
+
+.safety-check {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 10px;
+  align-items: start;
+  color: var(--text);
+}
+
+.safety-check input {
+  width: 18px;
+  height: 18px;
+  margin-top: 3px;
+  accent-color: var(--zone-color);
 }
 
 .primary-button {
@@ -915,6 +959,7 @@ body.settings-open .status-message {
 .loading-mark__core,
 .load-bar-wrap,
 .error-card,
+.safety-card,
 .primary-button,
 .brand-chip,
 .pill,

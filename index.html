@@ -8,6 +8,7 @@
   <meta name="apple-mobile-web-app-title" content="BikSAFE" />
   <meta name="theme-color" content="#08151f" />
   <title>BikSAFE</title>
+  <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <link rel="preconnect" href="https://tfhub.dev" crossorigin />
   <link rel="preconnect" href="https://storage.googleapis.com" crossorigin />
@@ -33,9 +34,14 @@
         <option value="lite_mobilenet_v2">Fast start - lighter download</option>
         <option value="mobilenet_v2">Balanced - stronger detection</option>
         <option value="mobilenet_v1">Compatibility - older devices</option>
+        <optgroup label="Experimental models">
+          <option value="efficientdet_lite0">EfficientDet-Lite0 — experimental</option>
+          <option value="rfdetr_nano">RF-DETR Nano — experimental, ~56 MB</option>
+        </optgroup>
       </select>
     </label>
-    <button id="start-button" class="primary-button primary-button--start" type="button">
+    <p id="model-note" class="settings-hint" aria-live="polite"></p>
+    <button id="start-button" class="primary-button primary-button--start" type="button" disabled>
       Start Detector
     </button>
     <div class="load-bar-wrap">
@@ -52,6 +58,25 @@
         and bicycles around your bike.
       </p>
       <button id="retry-button" class="primary-button" type="button">Try again</button>
+    </div>
+  </div>
+
+  <div id="safety-gate" class="screen screen--safety" role="dialog" aria-modal="true" aria-labelledby="safety-title" hidden>
+    <div class="safety-card">
+      <p class="safety-card__eyebrow">Before riding</p>
+      <h2 id="safety-title">Use BikSAFE as a traffic-awareness aid only.</h2>
+      <ul class="safety-list">
+        <li>Keep watching the road and checking mirrors or shoulders.</li>
+        <li>Do not adjust the app while riding.</li>
+        <li>Test alerts in a safe, stationary setup before using it near traffic.</li>
+      </ul>
+      <label class="safety-check" for="safety-ack-checkbox">
+        <input id="safety-ack-checkbox" type="checkbox" />
+        <span>I understand BikSAFE does not prevent crashes or replace attentive riding.</span>
+      </label>
+      <button id="safety-accept-button" class="primary-button" type="button" disabled>
+        Continue
+      </button>
     </div>
   </div>
 
@@ -127,8 +152,8 @@
     </aside>
     <section class="bottom-hud" aria-live="polite">
       <span class="bottom-hud__context" id="zone-context">Traffic ahead</span>
-      <strong class="bottom-hud__zone" id="zone-value">CLEAR</strong>
-      <span class="bottom-hud__detail" id="threat-detail">No vehicles</span>
+      <strong class="bottom-hud__zone" id="zone-value">MONITORING</strong>
+      <span class="bottom-hud__detail" id="threat-detail">Waiting for detector</span>
       <span class="bottom-hud__distance" id="hero-distance">--</span>
       <div class="risk-meter" hidden aria-hidden="true">
         <div class="risk-meter__fill" id="risk-fill"></div>
@@ -155,14 +180,21 @@
       <strong class="telemetry-card__value" id="vehicle-count">0</strong>
     </article>
     <article class="telemetry-card">
-      <span class="telemetry-card__label">FPS</span>
+      <span class="telemetry-card__label">Detector Hz</span>
       <strong class="telemetry-card__value" id="fps-value">--</strong>
     </article>
     <article class="telemetry-card">
       <span class="telemetry-card__label">Latency</span>
       <strong class="telemetry-card__value" id="latency-value">--</strong>
     </article>
+    <article class="telemetry-card">
+      <span class="telemetry-card__label">Frame age</span>
+      <strong class="telemetry-card__value" id="observation-age-value">--</strong>
+    </article>
     </div>
+    <button id="record-timings-button" class="diagnostics-drawer__close" type="button">Record timings</button>
+    <button id="export-timings-button" class="diagnostics-drawer__close" type="button" disabled>Export timings</button>
+    <a class="diagnostics-drawer__close" href="./tools/" target="_blank" rel="noopener">Comparison tools</a>
   </aside>
 
   <p class="status-message" id="status-message" hidden>
