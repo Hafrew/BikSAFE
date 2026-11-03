@@ -157,6 +157,31 @@ class BikSAFEApp {
   }
 
   bindEvents() {
+    const helpPage = document.getElementById("help-page");
+    helpPage.addEventListener("close", () => {
+      document.getElementById(this.running ? "controls-toggle-button" : "home-help-button").focus();
+    });
+    for (const id of ["home-help-button", "ride-help-button"]) {
+      document.getElementById(id).addEventListener("click", () => {
+        this.setControlsOpen(false);
+        if (!helpPage.open) helpPage.showModal();
+      });
+    }
+    document.getElementById("end-ride-button").addEventListener("click", () => {
+      if (!this.running) return;
+      this.running = false;
+      this.detector.pause();
+      window.clearTimeout(this.cameraRecoveryTimer);
+      window.clearTimeout(this.cameraStabilityTimer);
+      this.camera.stop();
+      this.overlay.clear();
+      this.wakeLock.stop();
+      if (this.feedback.audioCtx?.state !== "closed") {
+        void this.feedback.audioCtx?.close().catch(() => {});
+      }
+      if (this.feedback.supportsHaptics) navigator.vibrate(0);
+      window.location.reload();
+    });
     const setSetupDirection = (mode) => {
       this.mode = mode;
       this.settings.activeMode = mode;

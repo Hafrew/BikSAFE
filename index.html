@@ -41,6 +41,7 @@
     <p id="model-note" class="settings-hint" aria-live="polite"></p>
     </details>
     <p class="loading-copy__status" id="load-status" role="status">Preparing mobile detector...</p>
+    <button id="home-help-button" class="help-link" type="button">Help</button>
     <button id="start-button" class="primary-button primary-button--start" type="button" disabled>
       Start ride ↗
     </button>
@@ -112,6 +113,10 @@
         <span class="action-chip__label">Device</span>
         <strong class="action-chip__value">Diagnostics</strong>
       </button>
+    </div>
+    <div class="control-tray__secondary">
+      <button id="ride-help-button" class="menu-secondary" type="button">Help</button>
+      <button id="end-ride-button" class="menu-secondary" type="button">End ride</button>
     </div>
   </section>
   <div class="rear-banner" id="rear-banner" hidden>Rear mirror</div>
@@ -288,6 +293,19 @@
       </p>
     </section>
   </section>
+
+  <dialog id="help-page" class="help-page" aria-labelledby="help-title">
+    <header class="help-page__header"><h1 id="help-title">Help</h1><form method="dialog"><button class="menu-secondary" autofocus>Close</button></form></header>
+    <p class="help-intro">Make adjustments while stationary. Detection and alerts continue while Help is open during a ride.</p>
+    <section><h2>Start a ride</h2><p>Mount your phone securely and point the camera toward the traffic you want to watch. Choose Ahead or Behind, then Start ride and allow camera access.</p></section>
+    <section><h2>Change watch direction</h2><p>Open Menu during a ride and choose Front or Rear. Check that the camera is aimed correctly after switching.</p></section>
+    <section><h2>Border glow and distance meter</h2><p>The border changes from lime to yellow to red as the warning level increases. The right-side scale shows estimated vehicle distances, with closer vehicles nearer the bottom. No marker does not mean the road is clear. Distances are approximate.</p></section>
+    <section><h2>Sound and camera view</h2><p>Sound controls audio alerts. Camera shows or hides the live image; detection continues with the image hidden. Vibration support depends on your browser and device.</p></section>
+    <section><h2>Pause or end</h2><p>Pause stops detection and new alerts but leaves the camera on. Resume restarts detection. Menu → End ride stops the camera and detection and returns to the home screen. Export any timing recording before ending; it is not saved automatically.</p></section>
+    <section><h2>Settings and diagnostics</h2><p>Detection settings on the home screen select the model for the next ride. Experimental models are unvalidated on iPhone. During a ride, Menu provides distance-zone tuning, Diagnostics, and timing exports.</p></section>
+    <section><h2>If detection stops</h2><p>Read the on-screen fault message. Check camera permission and the network connection used to download the model. Keep the app visible; switching tabs or locking the screen can interrupt detection.</p></section>
+    <p class="help-intro">BikSAFE is a traffic-awareness aid. Keep watching the road and checking mirrors or shoulders.</p>
+  </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>

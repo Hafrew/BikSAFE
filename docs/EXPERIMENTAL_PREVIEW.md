@@ -25,3 +25,5 @@ The UI uses charcoal surfaces and lime Start ride and loading accents with reduc
 - These UI changes are source-reviewed and packaged only. Browser/layout checks and iPhone testing remain deferred at the user's request.
 
 Home-screen direction selection and illustration use neutral colors. The direction note explains that it can be adjusted during rides. The border glow, detection markers, and meter gradient share the primary lime endpoint, with yellow and red warning endpoints.
+
+Help is available on the home screen and in the ride menu as an in-app dialog, preserving the active session. End ride pauses detection, stops the camera and screen wake lock, and reloads setup. Timing recordings must be exported before ending.

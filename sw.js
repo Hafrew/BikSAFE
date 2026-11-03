@@ -1,4 +1,4 @@
-const CACHE_VERSION = "biksafe-v14-primary-palette";
+const CACHE_VERSION = "biksafe-v15-help-end-ride";
 const APP_SHELL = [
   "./",
   "./index.html",
