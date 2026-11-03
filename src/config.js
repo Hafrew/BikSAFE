@@ -156,24 +156,24 @@ export const FALLBACK_RISK_PROFILES = {
 
 export const ZONE_STYLES = {
   CLEAR: {
-    color: "#5ef2c4",
+    color: "#ddff55",
     displayLabel: "MONITORING",
-    boxColor: "#5ef2c4",
+    boxColor: "#ddff55",
   },
   FAR: {
-    color: "#5ef2c4",
+    color: "#ddff55",
     displayLabel: "VEHICLE",
-    boxColor: "#5ef2c4",
+    boxColor: "#ddff55",
   },
   MEDIUM: {
-    color: "#ffbe62",
+    color: "#ffce55",
     displayLabel: "WARNING",
-    boxColor: "#ffbe62",
+    boxColor: "#ffce55",
   },
   CLOSE: {
-    color: "#ff6b8f",
+    color: "#ff625c",
     displayLabel: "DANGER",
-    boxColor: "#ff6b8f",
+    boxColor: "#ff625c",
   },
 };
 

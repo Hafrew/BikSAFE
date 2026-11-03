@@ -1,10 +1,11 @@
-const CACHE_VERSION = "biksafe-v10-experimental-models";
+const CACHE_VERSION = "biksafe-v16-camera-always-visible";
 const APP_SHELL = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
   "./privacy.html",
   "./styles.css",
+  "./src/assets/fonts/plus-jakarta-sans-latin.woff2",
   "./src/app.js",
   "./src/camera.js",
   "./src/candidate-engine.js",

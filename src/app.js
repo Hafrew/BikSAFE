@@ -91,9 +91,8 @@ class BikSAFEApp {
     this.diagnosticsButton = document.getElementById("diagnostics-button");
     this.diagnosticsCloseButton = document.getElementById("diagnostics-close-button");
     this.controlsToggleButton = document.getElementById("controls-toggle-button");
-    this.rideViewButton = document.getElementById("ride-view-button");
-    this.visionViewButton = document.getElementById("vision-view-button");
     this.soundButton = document.getElementById("sound-button");
+    this.pauseButton = document.getElementById("pause-button");
     this.hapticsButton = document.getElementById("haptics-button");
     this.demoMode = new URLSearchParams(window.location.search).get("demo") === "1";
     this.runtimeDiagnostics = new RuntimeDiagnostics();
@@ -136,8 +135,9 @@ class BikSAFEApp {
     this.detector.setSettings(this.settings);
 
     this.running = false;
+    this.paused = false;
     this.switching = false;
-    this.viewMode = "ride";
+    this.viewMode = "vision";
     this.controlsOpen = false;
     this.settingsOpen = false;
     this.diagnosticsOpen = false;
@@ -154,6 +154,41 @@ class BikSAFEApp {
   }
 
   bindEvents() {
+    const helpPage = document.getElementById("help-page");
+    helpPage.addEventListener("close", () => {
+      document.getElementById(this.running ? "controls-toggle-button" : "home-help-button").focus();
+    });
+    for (const id of ["home-help-button", "ride-help-button"]) {
+      document.getElementById(id).addEventListener("click", () => {
+        this.setControlsOpen(false);
+        if (!helpPage.open) helpPage.showModal();
+      });
+    }
+    document.getElementById("end-ride-button").addEventListener("click", () => {
+      if (!this.running) return;
+      this.running = false;
+      this.detector.pause();
+      window.clearTimeout(this.cameraRecoveryTimer);
+      window.clearTimeout(this.cameraStabilityTimer);
+      this.camera.stop();
+      this.overlay.clear();
+      this.wakeLock.stop();
+      if (this.feedback.audioCtx?.state !== "closed") {
+        void this.feedback.audioCtx?.close().catch(() => {});
+      }
+      if (this.feedback.supportsHaptics) navigator.vibrate(0);
+      window.location.reload();
+    });
+    const setSetupDirection = (mode) => {
+      this.mode = mode;
+      this.settings.activeMode = mode;
+      this.persistSettings();
+      this.applyModeState();
+      this.renderSettingsPanel();
+    };
+    document.getElementById("setup-front-button").addEventListener("click", () => setSetupDirection("front"));
+    document.getElementById("setup-rear-button").addEventListener("click", () => setSetupDirection("rear"));
+    this.pauseButton.addEventListener("click", () => this.setPaused(!this.paused));
     document.getElementById("record-timings-button")?.addEventListener("click", (event) => {
       this.runtimeDiagnostics = new RuntimeDiagnostics();
       this.recordingTimings = true;
@@ -202,12 +237,6 @@ class BikSAFEApp {
       this.setControlsOpen(!this.controlsOpen);
     });
 
-    this.rideViewButton.addEventListener("click", () => {
-      this.setViewMode("ride");
-    });
-    this.visionViewButton.addEventListener("click", () => {
-      this.setViewMode("vision");
-    });
 
     this.soundButton.addEventListener("click", async () => {
       await this.feedback.prime();
@@ -298,7 +327,7 @@ class BikSAFEApp {
         });
       } else {
         this.health.clear("lifecycle.hidden");
-        if (this.running && this.camera.isLive()) {
+        if (this.running && !this.paused && this.camera.isLive()) {
           this.detector.start();
         }
       }
@@ -348,6 +377,7 @@ class BikSAFEApp {
     }
 
     this.modelSelect.value = savedChoice;
+    document.getElementById("advanced-setup").open = EXPERIMENTAL_MODELS.has(savedChoice);
     const updateModelNote = () => {
       const note = document.getElementById("model-note");
       if (!note) return;
@@ -367,6 +397,9 @@ class BikSAFEApp {
           : MODEL_BASE;
 
         saveModelChoice(choice);
+        document.body.classList.add("starting");
+        document.getElementById("setup-front-button").disabled = true;
+        document.getElementById("setup-rear-button").disabled = true;
         this.modelSelect.disabled = true;
         this.startButton.disabled = true;
         this.startButton.textContent = "Starting...";
@@ -382,16 +415,21 @@ class BikSAFEApp {
       modelLabel: snapshot.modelLabel ?? this.detector.modelLabel,
       backend: snapshot.backend ?? this.detector.backend,
     });
+    document.getElementById("diagnostics-requested-model").textContent = this.detector.requestedModelBase;
+    document.getElementById("diagnostics-active-model").textContent = this.detector.modelLabel;
+    const runtime = this.detector.model?.runtimeInfo;
+    document.getElementById("diagnostics-runtime").textContent = runtime
+      ? JSON.stringify(runtime)
+      : `TensorFlow.js / ${snapshot.backend ?? this.detector.backend}`;
   }
 
   setSettingsOpen(open) {
+    if (open && this.diagnosticsOpen) this.setDiagnosticsOpen(false);
     this.settingsOpen = open;
     this.settingsPanel.setOpen(open);
     this.ui.setSettingsOpen(open);
     if (open) {
       this.setControlsOpen(false);
-    }
-    if (open) {
       this.renderSettingsPanel(this.detector.snapshot);
     }
   }
@@ -412,10 +450,11 @@ class BikSAFEApp {
   }
 
   setDiagnosticsOpen(open) {
+    if (open && this.settingsOpen) this.setSettingsOpen(false);
     this.diagnosticsOpen = open;
     this.ui.setDiagnosticsOpen(open);
     if (open) {
-      this.setViewMode("vision");
+      this.renderSettingsPanel();
       this.setControlsOpen(false);
     }
   }
@@ -429,6 +468,26 @@ class BikSAFEApp {
     this.viewMode = viewMode === "vision" ? "vision" : "ride";
     this.ui.setViewMode(this.viewMode);
     this.overlay.setViewMode(this.viewMode);
+  }
+
+  setPaused(paused) {
+    if (!this.running || this.switching) return;
+    this.paused = paused;
+    this.setControlsOpen(false);
+    this.feedback.lastZone = "CLEAR";
+    this.feedback.clearSystemFault();
+    this.overlay.clear();
+    if (paused) {
+      this.detector.pause();
+      window.clearTimeout(this.cameraRecoveryTimer);
+      this.cameraRecoveryTimer = null;
+    } else {
+      this.startedAt = performance.now();
+      this.lastRenderedSequence = -1;
+      if (this.camera.isLive() && !document.hidden) this.detector.start();
+      else this.scheduleCameraRecovery();
+    }
+    this.ui.setPaused(paused);
   }
 
   reportSettingsError(settingsError) {
@@ -479,7 +538,7 @@ class BikSAFEApp {
   handleCameraStatus(status) {
     if (status.state === "live") {
       this.detector.setSourceGeneration(status.generation);
-      if (this.running) {
+      if (this.running && !this.paused && !document.hidden) {
         this.detector.start();
       }
       this.health.clear("camera.stream");
@@ -658,6 +717,7 @@ class BikSAFEApp {
     if (
       this.cameraRecoveryTimer ||
       this.switching ||
+      this.paused ||
       !this.running ||
       this.camera.isLive()
     ) {
@@ -679,7 +739,7 @@ class BikSAFEApp {
   }
 
   async recoverCamera() {
-    if (!this.running || this.switching || this.camera.isLive()) {
+    if (!this.running || this.paused || this.switching || this.camera.isLive()) {
       return;
     }
 
@@ -837,7 +897,7 @@ class BikSAFEApp {
       this.ui.hideLoading();
     } finally {
       this.switching = false;
-      if (this.running && this.camera.isLive()) {
+      if (this.running && !this.paused && this.camera.isLive()) {
         this.detector.start();
       }
     }
@@ -845,6 +905,11 @@ class BikSAFEApp {
 
   loop = () => {
     if (!this.running) {
+      return;
+    }
+
+    if (this.paused) {
+      window.requestAnimationFrame(this.loop);
       return;
     }
 
@@ -872,7 +937,7 @@ class BikSAFEApp {
       this.lastRenderedHealthAt = health.changedAt;
       this.lastRenderedFps = fps;
 
-      if (this.settingsOpen) {
+      if (this.settingsOpen || this.diagnosticsOpen) {
         this.renderSettingsPanel(snapshot);
       }
     }
@@ -929,7 +994,7 @@ class BikSAFEApp {
     this.ui.setSettingsOpen(false);
     this.ui.setDiagnosticsOpen(false);
     this.setControlsOpen(false);
-    this.setViewMode("ride");
+    this.setViewMode("vision");
     this.ui.updateHealth(this.healthSnapshot);
 
     this.ui.setLoading(4, "Review safety notice.");

@@ -14,12 +14,16 @@ The November 2 model and pipeline additions have only been packaged and reviewed
 
 Before promotion to main, verify camera start/recovery and front/rear switching, identify the actual active model, compare sustained frame age and responsiveness, and evaluate detection quality with complete public-data coverage. Export recordings and the matching build fingerprint. A deployed preview alone does not establish performance improvement.
 
-## Proposed UI direction
+## Implemented UI direction
 
-The UI overhaul is a separate follow-up, not implemented in this preview:
+The UI uses charcoal surfaces and lime Start ride and loading accents with reduced corner rounding. Mark III appears at the bottom of setup. Plus Jakarta Sans is bundled as a local Latin variable WOFF2 (weights 400–700, font-display swap); its SIL Open Font License is beside the font in src/assets/fonts.
 
-- Setup: camera/mount orientation, sound preference, simple readiness checks, one Start ride action. Advanced model choices live under settings.
-- Ride: one dominant traffic message, clearly marked estimated distance, explicit front/rear state, and a compact camera/detector health indicator. A camera view is optional. No supported detection reads Monitoring; camera or detector failure takes priority.
-- Controls: large bottom controls for sound, camera view, and pause; keep diagnostics and tuning off the ride screen.
-- Diagnostics: requested/active model, observation age, model-call timing, fallback reasons, and export, with experimental choices clearly labeled.
-- Layout: high contrast, system fonts, safe-area padding, dynamic viewport sizing, readable text without clipping, and reduced animation. Keep range estimates visibly approximate and avoid implying that no detection means the road is safe.
+- Normal ride view shows only Front watch or Rear watch at the top. No marketing headline, readiness chip, Monitoring label, or Watching road card is shown.
+- Primary lime/yellow/red border glow reflects the current warning state. The right-side estimated-distance scale shows live vehicle markers, with nearer vehicles toward the bottom. Paused, stale, and blocking failure states clear the markers; faults retain explicit text.
+- Bottom controls expose sound, camera view, pause/resume, and Menu. Diagnostics and tuning remain separate sheets.
+- Pause stops inference and new alerts, clears readings, and leaves the camera stream active. Camera recovery and visibility changes must respect manual pause.
+- These UI changes are source-reviewed and packaged only. Browser/layout checks and iPhone testing remain deferred at the user's request.
+
+Home-screen direction selection and illustration use neutral colors. The direction note explains that it can be adjusted during rides. The border glow, detection markers, and meter gradient share the primary lime endpoint, with yellow and red warning endpoints.
+
+Help is available on the home screen and in the ride menu as an in-app dialog, preserving the active session. End ride pauses detection, stops the camera and screen wake lock, and reloads setup. Timing recordings must be exported before ending.
