@@ -16,10 +16,12 @@ Before promotion to main, verify camera start/recovery and front/rear switching,
 
 ## Implemented UI direction
 
-The UI uses charcoal surfaces and lime setup controls with reduced corner rounding. Mark III appears at the bottom of setup. Plus Jakarta Sans is bundled as a local Latin variable WOFF2 (weights 400–700, font-display swap); its SIL Open Font License is beside the font in src/assets/fonts.
+The UI uses charcoal surfaces and lime Start ride and loading accents with reduced corner rounding. Mark III appears at the bottom of setup. Plus Jakarta Sans is bundled as a local Latin variable WOFF2 (weights 400–700, font-display swap); its SIL Open Font License is beside the font in src/assets/fonts.
 
 - Normal ride view shows only Front watch or Rear watch at the top. No marketing headline, readiness chip, Monitoring label, or Watching road card is shown.
-- Green/yellow/red border glow reflects the current warning state. The right-side estimated-distance scale shows live vehicle markers, with nearer vehicles toward the bottom. Paused, stale, and blocking failure states clear the markers; faults retain explicit text.
+- Primary lime/yellow/red border glow reflects the current warning state. The right-side estimated-distance scale shows live vehicle markers, with nearer vehicles toward the bottom. Paused, stale, and blocking failure states clear the markers; faults retain explicit text.
 - Bottom controls expose sound, camera view, pause/resume, and Menu. Diagnostics and tuning remain separate sheets.
 - Pause stops inference and new alerts, clears readings, and leaves the camera stream active. Camera recovery and visibility changes must respect manual pause.
 - These UI changes are source-reviewed and packaged only. Browser/layout checks and iPhone testing remain deferred at the user's request.
+
+Home-screen direction selection and illustration use neutral colors. The direction note explains that it can be adjusted during rides. The border glow, detection markers, and meter gradient share the primary lime endpoint, with yellow and red warning endpoints.

@@ -13,7 +13,9 @@
   --text: #f6f7ef;
   --muted: #a9aca0;
   --lime: #ddff55;
-  --zone-color: #5ef2c4;
+  --zone-color: var(--lime);
+  --warning: #ffce55;
+  --danger: #ff625c;
   --font-ui: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-data: var(--font-ui);
   --safe-area-top: env(safe-area-inset-top, 0px);
@@ -52,15 +54,15 @@ body[data-view='vision'] #overlay { opacity: 1; }
 .setup-illustration svg { width: 100%; height: 100%; }
 .road-edge { stroke: #424637; stroke-width: 18; }
 .road-center { stroke: #72785c; stroke-width: 2; }
-.bike-halo { fill: #ddff5514; stroke: #ddff5529; stroke-width: 16; }
-.bike-line { stroke: var(--lime); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.traffic-shape { fill: var(--lime); }
+.bike-halo { fill: #c6c9bf0d; stroke: #c6c9bf26; stroke-width: 16; }
+.bike-line { stroke: #d6d9ce; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.traffic-shape { fill: #d6d9ce; }
 .traffic-window { stroke: #10110e; stroke-width: 3; }
 .setup-direction { border: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .setup-direction legend { font-size: 12px; color: var(--muted); margin-bottom: 9px; }
 .setup-direction button { min-height: 52px; border: 1px solid #3a3e30; border-radius: 12px; background: var(--panel); padding: 0 18px; text-align: left; font-size: 15px; }
 .setup-direction button span { float: right; }
-.setup-direction button[aria-pressed='true'] { background: var(--lime); border-color: var(--lime); color: var(--bg); }
+.setup-direction button[aria-pressed='true'] { background: #34372e; border-color: #c6c9bf; color: var(--text); }
 .advanced-setup { padding: 16px 18px; background: var(--panel); border-radius: 12px; }
 .advanced-setup summary { cursor: pointer; font-size: 13px; min-height: 24px; }
 .model-picker { display: block; margin-top: 18px; }
@@ -169,7 +171,7 @@ body.paused .glow-layer { border-color: #6d7464; box-shadow: none; }
 .control-tray { top: auto; bottom: calc(var(--safe-area-bottom) + 106px); }
 .radar-lane { position: fixed; z-index: 4; right: var(--gutter); top: calc(var(--safe-area-top) + 100px); bottom: calc(var(--safe-area-bottom) + 130px); width: 66px; pointer-events: none; }
 .radar-lane__caption { position: absolute; right: 0; top: -24px; font-size: 10px; color: var(--muted); }
-.radar-lane__track { position: absolute; top: 0; bottom: 18px; right: 7px; width: 3px; background: linear-gradient(to top, #ff625c, #ffbe62 30%, #5ef2c4); border-radius: 3px; }
+.radar-lane__track { position: absolute; top: 0; bottom: 18px; right: 7px; width: 3px; background: linear-gradient(to top, var(--danger), var(--warning) 30%, var(--lime)); border-radius: 3px; }
 .radar-lane__tick { position: absolute; right: 20px; font-size: 10px; color: #d8e0cf; font-variant-numeric: tabular-nums; padding: 2px; background: #10110e88; }
 .radar-lane__tick--far { top: 0; }
 .radar-lane__tick--mid { top: calc(50% - 9px); }
@@ -185,3 +187,6 @@ body.paused .glow-layer { border-color: #6d7464; box-shadow: none; }
   .health-banner { top: calc(var(--safe-area-top) + 74px); bottom: auto; right: 140px; }
   .radar-lane { top: calc(var(--safe-area-top) + 42px); bottom: calc(var(--safe-area-bottom) + 38px); }
 }
+
+.setup-direction__hint { grid-column: 1 / -1; color: var(--muted); font-size: 11px; line-height: 1.5; margin: -2px 0 6px; }
+.screen--loading :focus-visible { outline-color: var(--text); }

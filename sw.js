@@ -1,4 +1,4 @@
-const CACHE_VERSION = "biksafe-v13-glow-distance-meter";
+const CACHE_VERSION = "biksafe-v14-primary-palette";
 const APP_SHELL = [
   "./",
   "./index.html",
